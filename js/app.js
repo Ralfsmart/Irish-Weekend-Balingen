@@ -60,6 +60,28 @@ function berechneGesamtpreis(optionen) {
   return optionen.reduce((summe, o) => summe + o.price, 0);
 }
 
+function formatiereRechnungsblock(optionen, gesamtpreis) {
+  const gesamtLabel = "Gesamtpreis";
+  const gesamtPreisText = eur(gesamtpreis);
+
+  if (!optionen.length) {
+    return `(keine Optionen ausgewählt)\n\n${gesamtLabel}: ${gesamtPreisText}`;
+  }
+
+  const eintraege = optionen.map((o) => ({ label: o.label, preis: eur(o.price) }));
+  const maxLabelLaenge = Math.max(...eintraege.map((e) => e.label.length), gesamtLabel.length);
+  const maxPreisLaenge = Math.max(...eintraege.map((e) => e.preis.length), gesamtPreisText.length);
+
+  const zeile = (label, preis) => `${label.padEnd(maxLabelLaenge + 2)}${preis.padStart(maxPreisLaenge)}`;
+  const trennlinie = "━".repeat(maxLabelLaenge + 2 + maxPreisLaenge);
+
+  return [
+    ...eintraege.map((e) => zeile(e.label, e.preis)),
+    trennlinie,
+    zeile(gesamtLabel, gesamtPreisText),
+  ].join("\n");
+}
+
 function zeigeUebersicht(daten) {
   ausgewaehlteOptionen = ermittleAusgewaehlteOptionen();
   const gesamtpreis = berechneGesamtpreis(ausgewaehlteOptionen);
@@ -124,10 +146,6 @@ document.getElementById("senden-btn").addEventListener("click", async () => {
   const besucher = document.getElementById("besucher").value;
   const gesamtpreis = berechneGesamtpreis(ausgewaehlteOptionen);
 
-  const optionenText = ausgewaehlteOptionen.length
-    ? ausgewaehlteOptionen.map((o) => `- ${o.label}: ${eur(o.price)}`).join("\n")
-    : "- (keine Optionen ausgewählt)";
-
   sendenBtn.disabled = true;
   status.textContent = "Wird gesendet …";
 
@@ -165,9 +183,7 @@ document.getElementById("senden-btn").addEventListener("click", async () => {
     `Anzahl Besucher: ${besucher}`,
     "",
     "Ausgewählte Optionen:",
-    optionenText,
-    "",
-    `Gesamtpreis: ${eur(gesamtpreis)}`,
+    formatiereRechnungsblock(ausgewaehlteOptionen, gesamtpreis),
   ].filter((zeile) => zeile !== null).join("\n");
 
   const mailtoUrl = `mailto:${config.targetEmail}?subject=${encodeURIComponent(betreff)}&body=${encodeURIComponent(body)}`;
