@@ -5,8 +5,8 @@
   "infoText2": "Bitte bequeme Kleidung und Schuhe zum Tanzen mitbringen. Voraussichtlicher Termin: April 2027, langes Wochenende (genaues Datum folgt).",
   "targetEmail": "ralf.schultheiss@googlemail.com",
   "options": [
-    { "id": "teilnahme", "label": "Teilnahme am Set Dance", "price": 15 },
-    { "id": "verpflegung", "label": "Verpflegung / Abendessen", "price": 10 },
-    { "id": "uebernachtung", "label": "Übernachtung vor Ort", "price": 20 }
+    { "id": "tanzabend", "label": "Tanzabend – Teilnahme", "price": 15 },
+    { "id": "uebernachtung-mehrbett", "label": "Übernachtung im Mehrbettzimmer", "price": 20 },
+    { "id": "uebernachtung-einzel", "label": "Übernachtung im Einzelzimmer", "price": 35 }
   ]
 }
