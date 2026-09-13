@@ -153,6 +153,26 @@ document.getElementById("senden-btn").addEventListener("click", async () => {
   const besucher = document.getElementById("besucher").value;
   const gesamtpreis = berechneGesamtpreis(ausgewaehlteOptionen);
 
+  if (config.apiBase) {
+    try {
+      const statusRes = await fetch(`${config.apiBase}/registration-status`, { cache: "no-store" });
+      if (statusRes.ok) {
+        const { verbleibend } = await statusRes.json();
+        if (verbleibend !== null && Number(besucher) > verbleibend) {
+          const fortfahren = window.confirm(
+            "Die Veranstaltung ist ausgebucht. Deine Anmeldung würde auf die Warteliste kommen.\n\n" +
+            "Möchtest du dich trotzdem auf die Warteliste setzen lassen? (Abbrechen, um nichts zu senden)"
+          );
+          if (!fortfahren) {
+            return;
+          }
+        }
+      }
+    } catch {
+      // Kapazitätsvorabprüfung ist ein Komfortfeature; im Fehlerfall normal fortfahren.
+    }
+  }
+
   sendenBtn.disabled = true;
   status.textContent = "Wird gesendet …";
 
