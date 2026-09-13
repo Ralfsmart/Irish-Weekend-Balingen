@@ -1,3 +1,4 @@
 name = "set-dance-balingen"
 main = "worker.js"
 compatibility_date = "2026-01-01"
+account_id = "ceccbd0692ed12a818a82cf320161681"
