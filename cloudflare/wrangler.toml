@@ -2,3 +2,8 @@ name = "set-dance-balingen"
 main = "worker.js"
 compatibility_date = "2026-01-01"
 account_id = "ceccbd0692ed12a818a82cf320161681"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "set-dance-balingen-db"
+database_id = "e62734c9-bc3d-4adb-abbd-b29f6c4264a5"

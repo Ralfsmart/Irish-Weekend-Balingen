@@ -1,15 +1,20 @@
 // Cloudflare Worker: übernimmt die serverseitigen Aufgaben, die eine rein
 // statische GitHub-Pages-Seite nicht selbst erledigen kann.
 //
-// - GET  /registration-status  -> öffentlich, liefert freie Plätze (Kapazität)
-// - POST /submit-registration  -> legt eine Anmeldung als GitHub Issue an
-//                                  (Status "bestaetigt" oder "warteliste")
-// - GET  /registrations        -> admin-only, liefert alle Anmeldungen für
-//                                  die Tabelle im Admin-Tool
-// - POST /admin-save           -> admin-only, committet data/config.json
+// - GET    /registration-status  -> öffentlich, liefert freie Plätze (Kapazität)
+// - POST   /submit-registration  -> speichert eine Anmeldung in D1
+//                                    (Status "bestaetigt" oder "warteliste")
+// - GET    /registrations        -> admin-only, alle Anmeldungen für die
+//                                    Tabelle im Admin-Tool
+// - PATCH  /registrations/:id    -> admin-only, Felder/Status einer
+//                                    Anmeldung bearbeiten
+// - DELETE /registrations/:id    -> admin-only, Anmeldung ganz löschen
+// - POST   /admin-save           -> admin-only, committet data/config.json
+//                                    auf GitHub
 //
-// Das GitHub-Token liegt ausschließlich hier als Worker-Secret (env.GITHUB_TOKEN)
-// und wird nie an den Browser ausgeliefert.
+// Anmeldungen liegen in der D1-Datenbank (env.DB) - kein Umweg mehr über
+// GitHub Issues. Inhalte (data/config.json) bleiben weiterhin ein GitHub-
+// Commit, dafür wird das GitHub-Token als Worker-Secret gebraucht.
 
 const GITHUB_API = "https://api.github.com";
 
@@ -25,9 +30,13 @@ function githubHeaders(env) {
 function corsHeaders(origin) {
   return {
     "Access-Control-Allow-Origin": origin || "*",
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Password",
   };
+}
+
+function pruefeAdminPasswort(request, env) {
+  return request.headers.get("X-Admin-Password") === env.ADMIN_PASSWORD;
 }
 
 async function fetchConfig(env) {
@@ -39,66 +48,18 @@ async function fetchConfig(env) {
   return res.json();
 }
 
-// Fine-grained GitHub-Tokens können hier keine Labels verwalten (nur Issues
-// anlegen/lesen). Anmeldungen werden deshalb nicht über Labels erkannt,
-// sondern über einen festen Marker im Issue-Text ("**Anzahl Besucher:**").
-const ANMELDUNG_MARKER = "**Anzahl Besucher:**";
-
-async function fetchAnmeldungIssues(env) {
-  const issues = [];
-  let page = 1;
-  while (page <= 10) {
-    const res = await fetch(
-      `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/issues?state=all&per_page=100&page=${page}`,
-      { headers: githubHeaders(env) }
-    );
-    if (!res.ok) break;
-    const seite = await res.json();
-    issues.push(...seite.filter((issue) => (issue.body || "").includes(ANMELDUNG_MARKER)));
-    if (seite.length < 100) break;
-    page += 1;
-  }
-  return issues;
-}
-
-function parseIssue(issue) {
-  const body = issue.body || "";
-  const besucherMatch = body.match(/\*\*Anzahl Besucher:\*\*\s*(\d+)/);
-  const emailMatch = body.match(/\*\*E-Mail:\*\*\s*(.+)/);
-  const nameMatch = body.match(/\*\*Name:\*\*\s*(.+)/);
-  const gesamtpreisMatch = body.match(/\*\*Gesamtpreis:\*\*\s*([\d.,]+)\s*€/);
-  const optionenMatch = body.match(/\*\*Ausgewählte Optionen:\*\*\n([\s\S]*?)\n\n\*\*Gesamtpreis/);
-  const statusMatch = body.match(/\*\*Status:\*\*\s*(.+)/);
-
-  return {
-    name: nameMatch ? nameMatch[1].trim() : "",
-    email: emailMatch ? emailMatch[1].trim() : "",
-    besucher: besucherMatch ? parseInt(besucherMatch[1], 10) : 0,
-    optionen: optionenMatch ? optionenMatch[1].trim() : "",
-    gesamtpreis: gesamtpreisMatch ? gesamtpreisMatch[1] : "",
-    status: statusMatch && statusMatch[1].trim() === "Warteliste" ? "warteliste" : "bestaetigt",
-    datum: issue.created_at,
-    issueUrl: issue.html_url,
-    offen: issue.state === "open",
-  };
-}
-
-// Ein geschlossenes Issue zählt nicht mehr zur Kapazität - so kann eine
-// stornierte/storno Anmeldung oder Testdaten einfach durch Schließen des
-// Issues auf GitHub aus der Belegung entfernt werden.
-async function berechneBelegung(env) {
+async function ermittleBelegung(env) {
   const config = await fetchConfig(env);
   const maxBesucher = Number(config && config.maxBesucher) || 0;
-  const issues = await fetchAnmeldungIssues(env);
-  const bestaetigt = issues
-    .map(parseIssue)
-    .filter((a) => a.status === "bestaetigt" && a.offen);
-  const aktuellBelegt = bestaetigt.reduce((summe, a) => summe + a.besucher, 0);
+  const { results } = await env.DB.prepare(
+    "SELECT COALESCE(SUM(besucher), 0) AS summe FROM registrations WHERE status = 'bestaetigt'"
+  ).all();
+  const aktuellBelegt = (results[0] && results[0].summe) || 0;
   return { maxBesucher, aktuellBelegt };
 }
 
 async function handleRegistrationStatus(request, env) {
-  const { maxBesucher, aktuellBelegt } = await berechneBelegung(env);
+  const { maxBesucher, aktuellBelegt } = await ermittleBelegung(env);
   const verbleibend = maxBesucher > 0 ? Math.max(0, maxBesucher - aktuellBelegt) : null;
 
   return new Response(JSON.stringify({ maxBesucher, aktuellBelegt, verbleibend }), {
@@ -116,40 +77,19 @@ async function handleSubmitRegistration(request, env) {
     return new Response("Name, E-Mail und Besucheranzahl sind erforderlich.", { status: 400 });
   }
 
-  const { maxBesucher, aktuellBelegt } = await berechneBelegung(env);
+  const { maxBesucher, aktuellBelegt } = await ermittleBelegung(env);
   const passtNochRein = maxBesucher === 0 || aktuellBelegt + Number(besucher) <= maxBesucher;
   const status = passtNochRein ? "bestaetigt" : "warteliste";
 
-  const optionenListe = Array.isArray(optionen) && optionen.length
-    ? optionen.map((o) => `- ${o.label}: ${Number(o.price).toFixed(2)} €`).join("\n")
-    : "- (keine Optionen ausgewählt)";
+  const optionenText = Array.isArray(optionen) && optionen.length
+    ? optionen.map((o) => `${o.label}: ${Number(o.price).toFixed(2)} €`).join("; ")
+    : "(keine Optionen ausgewählt)";
 
-  const body = [
-    `**Status:** ${status === "bestaetigt" ? "Bestätigt" : "Warteliste"}`,
-    `**Name:** ${name}`,
-    `**E-Mail:** ${email}`,
-    `**Anzahl Besucher:** ${besucher}`,
-    "",
-    "**Ausgewählte Optionen:**",
-    optionenListe,
-    "",
-    `**Gesamtpreis:** ${Number(gesamtpreis || 0).toFixed(2)} €`,
-  ].join("\n");
-
-  const titelPrefix = status === "bestaetigt" ? "Anmeldung" : "Warteliste";
-
-  const res = await fetch(`${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/issues`, {
-    method: "POST",
-    headers: githubHeaders(env),
-    body: JSON.stringify({
-      title: `${titelPrefix}: ${name}`,
-      body,
-    }),
-  });
-
-  if (!res.ok) {
-    return new Response(`GitHub-Fehler: ${await res.text()}`, { status: 502 });
-  }
+  await env.DB.prepare(
+    "INSERT INTO registrations (name, email, besucher, optionen, gesamtpreis, status) VALUES (?, ?, ?, ?, ?, ?)"
+  )
+    .bind(name, email, Number(besucher), optionenText, Number(gesamtpreis || 0), status)
+    .run();
 
   const neuBelegt = status === "bestaetigt" ? aktuellBelegt + Number(besucher) : aktuellBelegt;
   const verbleibend = maxBesucher > 0 ? Math.max(0, maxBesucher - neuBelegt) : null;
@@ -160,18 +100,56 @@ async function handleSubmitRegistration(request, env) {
   });
 }
 
-async function handleRegistrations(request, env) {
-  const password = request.headers.get("X-Admin-Password");
-  if (password !== env.ADMIN_PASSWORD) {
+async function handleListRegistrations(request, env) {
+  if (!pruefeAdminPasswort(request, env)) {
     return new Response("Falsches Admin-Passwort.", { status: 401 });
   }
 
-  const issues = await fetchAnmeldungIssues(env);
-  const anmeldungen = issues
-    .map(parseIssue)
-    .sort((a, b) => new Date(a.datum) - new Date(b.datum));
+  const { results } = await env.DB.prepare(
+    "SELECT id, name, email, besucher, optionen, gesamtpreis, status, erstellt_am FROM registrations ORDER BY erstellt_am ASC"
+  ).all();
 
-  return new Response(JSON.stringify({ anmeldungen }), {
+  return new Response(JSON.stringify({ anmeldungen: results }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function handleUpdateRegistration(request, env, id) {
+  if (!pruefeAdminPasswort(request, env)) {
+    return new Response("Falsches Admin-Passwort.", { status: 401 });
+  }
+
+  const daten = await request.json().catch(() => null);
+  if (!daten) return new Response("Ungültiges JSON.", { status: 400 });
+
+  const erlaubteFelder = ["name", "email", "besucher", "optionen", "gesamtpreis", "status"];
+  const updates = Object.entries(daten).filter(([feld]) => erlaubteFelder.includes(feld));
+  if (!updates.length) {
+    return new Response("Keine gültigen Felder zum Aktualisieren übergeben.", { status: 400 });
+  }
+
+  const setClause = updates.map(([feld]) => `${feld} = ?`).join(", ");
+  const werte = updates.map(([, wert]) => wert);
+
+  await env.DB.prepare(`UPDATE registrations SET ${setClause} WHERE id = ?`)
+    .bind(...werte, id)
+    .run();
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function handleDeleteRegistration(request, env, id) {
+  if (!pruefeAdminPasswort(request, env)) {
+    return new Response("Falsches Admin-Passwort.", { status: 401 });
+  }
+
+  await env.DB.prepare("DELETE FROM registrations WHERE id = ?").bind(id).run();
+
+  return new Response(JSON.stringify({ ok: true }), {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
@@ -231,6 +209,7 @@ export default {
     }
 
     const url = new URL(request.url);
+    const registrationIdMatch = url.pathname.match(/^\/registrations\/(\d+)$/);
     let response;
 
     if (url.pathname === "/registration-status" && request.method === "GET") {
@@ -238,7 +217,11 @@ export default {
     } else if (url.pathname === "/submit-registration" && request.method === "POST") {
       response = await handleSubmitRegistration(request, env);
     } else if (url.pathname === "/registrations" && request.method === "GET") {
-      response = await handleRegistrations(request, env);
+      response = await handleListRegistrations(request, env);
+    } else if (registrationIdMatch && request.method === "PATCH") {
+      response = await handleUpdateRegistration(request, env, registrationIdMatch[1]);
+    } else if (registrationIdMatch && request.method === "DELETE") {
+      response = await handleDeleteRegistration(request, env, registrationIdMatch[1]);
     } else if (url.pathname === "/admin-save" && request.method === "POST") {
       response = await handleAdminSave(request, env);
     } else {

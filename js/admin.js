@@ -131,20 +131,7 @@ document.getElementById("anmeldungen-laden-btn").addEventListener("click", async
 
     const daten = await res.json();
     geladeneAnmeldungen = daten.anmeldungen || [];
-
-    const tbody = document.getElementById("registrations-tbody");
-    tbody.innerHTML = geladeneAnmeldungen.map((a) => `
-      <tr>
-        <td>${a.status === "warteliste" ? "Warteliste" : "Bestätigt"}</td>
-        <td>${a.offen ? "Ja" : "Nein (geschlossen)"}</td>
-        <td>${a.name}</td>
-        <td>${a.email}</td>
-        <td>${a.besucher}</td>
-        <td>${a.optionen.replace(/\n/g, ", ")}</td>
-        <td>${a.gesamtpreis} €</td>
-        <td>${new Date(a.datum).toLocaleDateString("de-DE")}</td>
-      </tr>
-    `).join("");
+    renderRegistrationsTable();
 
     document.getElementById("registrations-count").textContent = geladeneAnmeldungen.length;
     document.getElementById("registrations-panel").hidden = false;
@@ -155,17 +142,105 @@ document.getElementById("anmeldungen-laden-btn").addEventListener("click", async
   }
 });
 
+function renderRegistrationsTable() {
+  const tbody = document.getElementById("registrations-tbody");
+  tbody.innerHTML = "";
+
+  geladeneAnmeldungen.forEach((a) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>
+        <select class="reg-status">
+          <option value="bestaetigt" ${a.status === "bestaetigt" ? "selected" : ""}>Bestätigt</option>
+          <option value="warteliste" ${a.status === "warteliste" ? "selected" : ""}>Warteliste</option>
+        </select>
+      </td>
+      <td><input type="text" class="reg-name" value="${a.name}" /></td>
+      <td><input type="email" class="reg-email" value="${a.email}" /></td>
+      <td><input type="number" class="reg-besucher" min="1" value="${a.besucher}" style="width:4rem" /></td>
+      <td><input type="text" class="reg-optionen" value="${a.optionen}" style="width:16rem" /></td>
+      <td><input type="number" class="reg-gesamtpreis" step="0.01" min="0" value="${a.gesamtpreis}" style="width:5rem" /></td>
+      <td>${new Date(a.erstellt_am).toLocaleDateString("de-DE")}</td>
+      <td>
+        <button type="button" class="btn btn-secondary reg-speichern">Speichern</button>
+        <button type="button" class="btn btn-secondary reg-loeschen">Löschen</button>
+      </td>
+    `;
+
+    row.querySelector(".reg-speichern").addEventListener("click", () => aktualisiereAnmeldung(a.id, row));
+    row.querySelector(".reg-loeschen").addEventListener("click", () => loescheAnmeldung(a.id));
+
+    tbody.appendChild(row);
+  });
+}
+
+async function aktualisiereAnmeldung(id, row) {
+  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+  const password = document.getElementById("admin-password").value;
+  const registrationsStatus = document.getElementById("registrations-status");
+
+  const config = {
+    status: row.querySelector(".reg-status").value,
+    name: row.querySelector(".reg-name").value.trim(),
+    email: row.querySelector(".reg-email").value.trim(),
+    besucher: parseInt(row.querySelector(".reg-besucher").value, 10) || 1,
+    optionen: row.querySelector(".reg-optionen").value.trim(),
+    gesamtpreis: parseFloat(row.querySelector(".reg-gesamtpreis").value) || 0,
+  };
+
+  registrationsStatus.textContent = "Speichere Anmeldung …";
+
+  try {
+    const res = await fetch(`${apiBase}/registrations/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "X-Admin-Password": password },
+      body: JSON.stringify(config),
+    });
+
+    registrationsStatus.textContent = res.ok
+      ? "Anmeldung gespeichert."
+      : `Fehler: ${await res.text()}`;
+  } catch (err) {
+    registrationsStatus.textContent = `Fehler beim Speichern: ${err.message}`;
+  }
+}
+
+async function loescheAnmeldung(id) {
+  if (!window.confirm("Diese Anmeldung wirklich unwiderruflich löschen?")) return;
+
+  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+  const password = document.getElementById("admin-password").value;
+  const registrationsStatus = document.getElementById("registrations-status");
+
+  try {
+    const res = await fetch(`${apiBase}/registrations/${id}`, {
+      method: "DELETE",
+      headers: { "X-Admin-Password": password },
+    });
+
+    if (res.ok) {
+      geladeneAnmeldungen = geladeneAnmeldungen.filter((a) => a.id !== id);
+      renderRegistrationsTable();
+      document.getElementById("registrations-count").textContent = geladeneAnmeldungen.length;
+      registrationsStatus.textContent = "Anmeldung gelöscht.";
+    } else {
+      registrationsStatus.textContent = `Fehler: ${await res.text()}`;
+    }
+  } catch (err) {
+    registrationsStatus.textContent = `Fehler beim Löschen: ${err.message}`;
+  }
+}
+
 document.getElementById("csv-download-btn").addEventListener("click", () => {
-  const kopfzeile = ["Status", "Zählt?", "Name", "E-Mail", "Besucher", "Optionen", "Gesamtpreis", "Datum"];
+  const kopfzeile = ["Status", "Name", "E-Mail", "Besucher", "Optionen", "Gesamtpreis", "Datum"];
   const zeilen = geladeneAnmeldungen.map((a) => [
     a.status === "warteliste" ? "Warteliste" : "Bestätigt",
-    a.offen ? "Ja" : "Nein (geschlossen)",
     a.name,
     a.email,
     a.besucher,
-    a.optionen.replace(/\n/g, "; "),
+    a.optionen,
     a.gesamtpreis,
-    new Date(a.datum).toLocaleDateString("de-DE"),
+    new Date(a.erstellt_am).toLocaleDateString("de-DE"),
   ]);
 
   const csv = [kopfzeile, ...zeilen].map((zeile) => zeile.map(csvFeld).join(",")).join("\n");
