@@ -11,8 +11,8 @@
   --max-width: 960px;
   --font-body: "Georgia", "Iowan Old Style", "Palatino Linotype", serif;
   --font-heading: "Trebuchet MS", "Segoe UI", sans-serif;
-  --panel-bg: rgba(253, 248, 242, 0.93);
-  --panel-bg-alt: rgba(243, 231, 216, 0.93);
+  --panel-bg: rgba(253, 248, 242, 0.72);
+  --panel-bg-alt: rgba(243, 231, 216, 0.72);
 }
 
 * {
@@ -189,7 +189,7 @@ input, textarea {
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.4);
   color: var(--color-text);
 }
 
@@ -215,7 +215,7 @@ input:focus, textarea:focus {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   padding: 0.85rem 1.1rem;
