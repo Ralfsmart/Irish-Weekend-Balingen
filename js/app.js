@@ -72,7 +72,11 @@ function formatiereRechnungsblock(optionen, gesamtpreis) {
   const maxLabelLaenge = Math.max(...eintraege.map((e) => e.label.length), gesamtLabel.length);
   const maxPreisLaenge = Math.max(...eintraege.map((e) => e.preis.length), gesamtPreisText.length);
 
-  const zeile = (label, preis) => `${label.padEnd(maxLabelLaenge + 2)}${preis.padStart(maxPreisLaenge)}`;
+  // Geschützte Leerzeichen ( ) statt normaler Leerzeichen, da manche
+  // Mail-Programme (z. B. Outlook im Rich-Text-Modus) mehrfache normale
+  // Leerzeichen wie in HTML zu einem einzigen zusammenfassen.
+  const zeile = (label, preis) =>
+    `${label.padEnd(maxLabelLaenge + 2, " ")}${preis.padStart(maxPreisLaenge, " ")}`;
   const trennlinie = "━".repeat(maxLabelLaenge + 2 + maxPreisLaenge);
 
   return [
