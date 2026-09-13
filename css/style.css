@@ -11,6 +11,8 @@
   --max-width: 960px;
   --font-body: "Georgia", "Iowan Old Style", "Palatino Linotype", serif;
   --font-heading: "Trebuchet MS", "Segoe UI", sans-serif;
+  --panel-bg: rgba(253, 248, 242, 0.93);
+  --panel-bg-alt: rgba(243, 231, 216, 0.93);
 }
 
 * {
@@ -23,6 +25,23 @@ body {
   color: var(--color-text);
   font-family: var(--font-body);
   line-height: 1.6;
+}
+
+.bg-fixed {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url("../img/hero.png");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+.bg-fixed::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(253, 248, 242, 0.2);
 }
 
 h1, h2, h3 {
@@ -42,7 +61,9 @@ a {
 }
 
 .site-header {
-  background: var(--color-bg);
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--color-border);
   position: sticky;
   top: 0;
@@ -80,10 +101,17 @@ a {
 }
 
 .hero {
-  background: linear-gradient(135deg, var(--color-bg-alt), var(--color-bg));
-  padding: 5rem 0 4rem;
+  padding: 4rem 0;
   text-align: center;
-  border-bottom: 1px solid var(--color-border);
+}
+
+.hero .container {
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  padding: 3rem 2rem;
+  box-shadow: 0 10px 30px rgba(46, 36, 32, 0.2);
 }
 
 .hero h1 {
@@ -118,34 +146,31 @@ a {
   background: var(--color-primary-dark);
 }
 
-.section {
-  padding: 3.5rem 0;
+.btn-secondary {
+  background: transparent;
+  color: var(--color-primary-dark);
+  border: 1px solid var(--color-primary-dark);
 }
 
-.section-alt {
+.btn-secondary:hover {
   background: var(--color-bg-alt);
 }
 
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.25rem;
-  margin: 2rem 0;
+.section {
+  padding: 1.5rem 0;
 }
 
-.info-card {
-  background: #fff;
-  border: 1px solid var(--color-border);
+.section .container {
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-radius: var(--radius);
-  padding: 1.25rem 1.5rem;
+  padding: 2.5rem 2rem;
+  box-shadow: 0 8px 24px rgba(46, 36, 32, 0.15);
 }
 
-.info-card h3 {
-  font-size: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-accent);
-  margin-bottom: 0.5rem;
+.section-alt .container {
+  background: var(--panel-bg-alt);
 }
 
 .section-note {
@@ -192,12 +217,98 @@ input:focus, textarea:focus {
   font-family: var(--font-heading);
 }
 
+.options-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+  max-width: 560px;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 0.85rem 1.1rem;
+  cursor: pointer;
+}
+
+.option-item input[type="checkbox"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.option-label {
+  flex: 1;
+}
+
+.option-price {
+  font-family: var(--font-heading);
+  color: var(--color-accent);
+  font-weight: bold;
+}
+
+.summary-list {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.4rem 1rem;
+  max-width: 560px;
+}
+
+.summary-list dt {
+  font-family: var(--font-heading);
+  color: var(--color-text-muted);
+}
+
+.summary-list dd {
+  margin: 0;
+}
+
+.summary-options {
+  max-width: 560px;
+  padding-left: 1.2rem;
+}
+
+.summary-total {
+  font-size: 1.2rem;
+  margin-top: 1.5rem;
+}
+
+.summary-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.option-editor-row {
+  display: grid;
+  grid-template-columns: 1fr 140px auto;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  max-width: 640px;
+}
+
+@media (max-width: 600px) {
+  .option-editor-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .site-footer {
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-top: 1px solid var(--color-border);
   padding: 1.5rem 0;
   text-align: center;
   color: var(--color-text-muted);
   font-size: 0.9rem;
+  margin-top: 1.5rem;
 }
 
 @media (max-width: 600px) {

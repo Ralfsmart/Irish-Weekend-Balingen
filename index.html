@@ -8,119 +8,83 @@
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+  <div class="bg-fixed" aria-hidden="true"></div>
+
   <header class="site-header">
     <div class="container header-inner">
       <a href="#top" class="logo">Set&nbsp;Dance<span>Balingen</span></a>
-      <nav class="main-nav">
-        <a href="#termin">Termin</a>
-        <a href="#anmeldung">Anmeldung</a>
-        <a href="#kontakt">Kontakt</a>
-      </nav>
     </div>
   </header>
 
   <main id="top">
     <section class="hero">
       <div class="container">
-        <h1>Set Dance in Balingen</h1>
-        <p class="hero-sub">Tanzen, Musik und gute Gesellschaft im Haus des Volkstanzens</p>
-        <a href="#anmeldung" class="btn btn-primary">Jetzt anmelden</a>
+        <h1 id="headline">Set Dance in Balingen</h1>
+        <p class="hero-sub" id="subheadline"></p>
       </div>
     </section>
 
-    <section id="termin" class="section">
+    <section class="section">
       <div class="container">
-        <h2>Termin &amp; Ort</h2>
-        <div class="info-grid">
-          <div class="info-card">
-            <h3>Wann</h3>
-            <p data-placeholder="datum">Voraussichtlich April 2027<br />(langes Wochenende, genaues Datum folgt)</p>
-          </div>
-          <div class="info-card">
-            <h3>Wo</h3>
-            <p>
-              Haus des Volkstanzens<br />
-              <span data-placeholder="adresse">Musterstraße 1, 72336 Balingen</span>
-            </p>
-          </div>
-          <div class="info-card">
-            <h3>Kosten</h3>
-            <p data-placeholder="preis">Beitrag: X &euro; pro Person</p>
-          </div>
-          <div class="info-card">
-            <h3>Anmeldeschluss</h3>
-            <p data-placeholder="anmeldeschluss">TT. Monat JJJJ</p>
-          </div>
+        <p id="info-text-1"></p>
+        <p id="info-text-2"></p>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+
+        <!-- Schritt 1: Optionen + Kontaktdaten -->
+        <div id="step-1">
+          <h2>Anmeldung</h2>
+
+          <div id="options-list" class="options-list"></div>
+
+          <form id="kontakt-form" class="registration-form" novalidate>
+            <div class="form-row">
+              <label for="besucher">Anzahl Besucher *</label>
+              <input type="number" id="besucher" name="besucher" min="1" value="1" required />
+            </div>
+            <div class="form-row">
+              <label for="name">Name *</label>
+              <input type="text" id="name" name="name" required />
+            </div>
+            <div class="form-row">
+              <label for="email">E-Mail *</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Weiter</button>
+          </form>
         </div>
-        <p class="section-note">
-          Vorkenntnisse sind nicht erforderlich – alle Tänze werden vorab erklärt.
-          Bitte bequeme Kleidung und Schuhe zum Tanzen mitbringen.
-        </p>
-      </div>
-    </section>
 
-    <section id="anmeldung" class="section section-alt">
-      <div class="container">
-        <h2>Anmeldung</h2>
-        <p class="section-note">
-          Bitte fülle das Formular aus. Beim Absenden öffnet sich dein E-Mail-Programm
-          mit einer vorausgefüllten Nachricht – du musst sie nur noch abschicken.
-        </p>
+        <!-- Schritt 2: Übersicht -->
+        <div id="step-2" hidden>
+          <h2>Übersicht</h2>
+          <dl id="uebersicht-daten" class="summary-list"></dl>
 
-        <form id="anmeldeformular" class="registration-form" novalidate>
-          <div class="form-row">
-            <label for="vorname">Vorname *</label>
-            <input type="text" id="vorname" name="vorname" required />
+          <h3>Ausgewählte Optionen</h3>
+          <ul id="uebersicht-optionen" class="summary-options"></ul>
+
+          <p class="summary-total">Gesamtpreis: <strong id="gesamtpreis">0,00 €</strong></p>
+
+          <div class="summary-actions">
+            <button type="button" id="zurueck-btn" class="btn btn-secondary">Zurück</button>
+            <button type="button" id="senden-btn" class="btn btn-primary">Anmeldung senden</button>
           </div>
-
-          <div class="form-row">
-            <label for="nachname">Nachname *</label>
-            <input type="text" id="nachname" name="nachname" required />
-          </div>
-
-          <div class="form-row">
-            <label for="email">E-Mail *</label>
-            <input type="email" id="email" name="email" required />
-          </div>
-
-          <div class="form-row">
-            <label for="telefon">Telefon</label>
-            <input type="tel" id="telefon" name="telefon" />
-          </div>
-
-          <div class="form-row">
-            <label for="personen">Anzahl Personen *</label>
-            <input type="number" id="personen" name="personen" min="1" value="1" required />
-          </div>
-
-          <div class="form-row">
-            <label for="nachricht">Anmerkungen</label>
-            <textarea id="nachricht" name="nachricht" rows="4" placeholder="z. B. Allergien, Fragen, Mitfahrgelegenheit ..."></textarea>
-          </div>
-
-          <button type="submit" class="btn btn-primary">Anmeldung per E-Mail senden</button>
           <p id="form-status" class="form-status" role="status"></p>
-        </form>
-      </div>
-    </section>
+        </div>
 
-    <section id="kontakt" class="section">
-      <div class="container">
-        <h2>Kontakt</h2>
-        <p>
-          Fragen rund um die Veranstaltung? Schreib uns einfach direkt:<br />
-          <a href="mailto:ralf.schultheiss@googlemail.com">ralf.schultheiss@googlemail.com</a>
-        </p>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="container">
-      <p>&copy; <span id="jahr"></span> Set Dance Balingen</p>
+      <p>&copy; <span id="jahr"></span> Set Dance Balingen · <a href="admin.html">Admin</a></p>
     </div>
   </footer>
 
-  <script src="js/script.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

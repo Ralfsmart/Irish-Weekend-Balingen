@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Set Dance Balingen – Admin</title>
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="bg-fixed" aria-hidden="true"></div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">Set&nbsp;Dance<span>Balingen</span></a>
+      <nav class="main-nav"><a href="index.html">Zur Anmeldeseite</a></nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="section">
+      <div class="container">
+        <h1>Admin – Inhalte bearbeiten</h1>
+        <p class="section-note">
+          Änderungen werden direkt als Commit in <code>data/config.json</code> im Repository gespeichert.
+          Dafür ist das Admin-Passwort erforderlich (wird serverseitig geprüft).
+        </p>
+
+        <form id="admin-form" class="registration-form">
+          <div class="form-row">
+            <label for="headline">Überschrift</label>
+            <input type="text" id="headline" name="headline" />
+          </div>
+          <div class="form-row">
+            <label for="subheadline">Subtext zur Überschrift</label>
+            <input type="text" id="subheadline" name="subheadline" />
+          </div>
+          <div class="form-row">
+            <label for="infoText1">Info-Text 1</label>
+            <textarea id="infoText1" name="infoText1" rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <label for="infoText2">Info-Text 2</label>
+            <textarea id="infoText2" name="infoText2" rows="3"></textarea>
+          </div>
+          <div class="form-row">
+            <label for="targetEmail">Ziel-E-Mail-Adresse für Anmeldungen</label>
+            <input type="email" id="targetEmail" name="targetEmail" />
+          </div>
+
+          <h2>Optionen</h2>
+          <div id="options-editor"></div>
+          <button type="button" id="option-hinzufuegen" class="btn btn-secondary">+ Option hinzufügen</button>
+
+          <h2>Admin-Passwort</h2>
+          <div class="form-row">
+            <label for="admin-password">Passwort *</label>
+            <input type="password" id="admin-password" name="admin-password" required />
+          </div>
+
+          <button type="submit" class="btn btn-primary">Speichern</button>
+          <p id="admin-status" class="form-status" role="status"></p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>&copy; <span id="jahr"></span> Set Dance Balingen</p>
+    </div>
+  </footer>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "headline": "Set Dance in Balingen",
+  "subheadline": "Tanzen, Musik und gute Gesellschaft im Haus des Volkstanzens",
+  "infoText1": "Vorkenntnisse sind nicht erforderlich – alle Tänze werden vor Ort erklärt und gemeinsam eingeübt.",
+  "infoText2": "Bitte bequeme Kleidung und Schuhe zum Tanzen mitbringen. Voraussichtlicher Termin: April 2027, langes Wochenende (genaues Datum folgt).",
+  "targetEmail": "ralf.schultheiss@googlemail.com",
+  "options": [
+    { "id": "teilnahme", "label": "Teilnahme am Set Dance", "price": 15 },
+    { "id": "verpflegung", "label": "Verpflegung / Abendessen", "price": 10 },
+    { "id": "uebernachtung", "label": "Übernachtung vor Ort", "price": 20 }
+  ]
+}

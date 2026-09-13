@@ -1,0 +1,127 @@
+document.getElementById("jahr").textContent = new Date().getFullYear();
+
+let config = null;
+let ausgewaehlteOptionen = [];
+
+const eur = (zahl) => zahl.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+
+async function ladeKonfiguration() {
+  const res = await fetch("data/config.json", { cache: "no-store" });
+  config = await res.json();
+
+  document.getElementById("headline").textContent = config.headline || "";
+  document.getElementById("subheadline").textContent = config.subheadline || "";
+  document.getElementById("info-text-1").textContent = config.infoText1 || "";
+  document.getElementById("info-text-2").textContent = config.infoText2 || "";
+
+  const liste = document.getElementById("options-list");
+  liste.innerHTML = "";
+  (config.options || []).forEach((option) => {
+    const id = `option-${option.id}`;
+    const wrapper = document.createElement("label");
+    wrapper.className = "option-item";
+    wrapper.innerHTML = `
+      <input type="checkbox" id="${id}" value="${option.id}" />
+      <span class="option-label">${option.label}</span>
+      <span class="option-price">${eur(option.price)}</span>
+    `;
+    liste.appendChild(wrapper);
+  });
+}
+
+function ermittleAusgewaehlteOptionen() {
+  const checkboxen = document.querySelectorAll('#options-list input[type="checkbox"]:checked');
+  return Array.from(checkboxen).map((cb) => config.options.find((o) => o.id === cb.value));
+}
+
+function berechneGesamtpreis(optionen) {
+  return optionen.reduce((summe, o) => summe + o.price, 0);
+}
+
+function zeigeUebersicht(daten) {
+  ausgewaehlteOptionen = ermittleAusgewaehlteOptionen();
+  const gesamtpreis = berechneGesamtpreis(ausgewaehlteOptionen);
+
+  const datenListe = document.getElementById("uebersicht-daten");
+  datenListe.innerHTML = `
+    <dt>Name</dt><dd>${daten.name}</dd>
+    <dt>E-Mail</dt><dd>${daten.email}</dd>
+    <dt>Anzahl Besucher</dt><dd>${daten.besucher}</dd>
+  `;
+
+  const optionenListe = document.getElementById("uebersicht-optionen");
+  optionenListe.innerHTML = ausgewaehlteOptionen.length
+    ? ausgewaehlteOptionen.map((o) => `<li>${o.label} – ${eur(o.price)}</li>`).join("")
+    : "<li>Keine Optionen ausgewählt</li>";
+
+  document.getElementById("gesamtpreis").textContent = eur(gesamtpreis);
+
+  document.getElementById("step-1").hidden = true;
+  document.getElementById("step-2").hidden = false;
+}
+
+document.getElementById("kontakt-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const form = event.target;
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+  const daten = new FormData(form);
+  zeigeUebersicht({
+    besucher: daten.get("besucher"),
+    name: daten.get("name").trim(),
+    email: daten.get("email").trim(),
+  });
+});
+
+document.getElementById("zurueck-btn").addEventListener("click", () => {
+  document.getElementById("step-2").hidden = true;
+  document.getElementById("step-1").hidden = false;
+});
+
+document.getElementById("senden-btn").addEventListener("click", async () => {
+  const status = document.getElementById("form-status");
+  const name = document.getElementById("name").value.trim();
+  const email = document.getElementById("email").value.trim();
+  const besucher = document.getElementById("besucher").value;
+  const gesamtpreis = berechneGesamtpreis(ausgewaehlteOptionen);
+
+  const optionenText = ausgewaehlteOptionen.length
+    ? ausgewaehlteOptionen.map((o) => `- ${o.label}: ${eur(o.price)}`).join("\n")
+    : "- (keine Optionen ausgewählt)";
+
+  const betreff = `Anmeldung Set Dance Balingen – ${name}`;
+  const body = [
+    `Name: ${name}`,
+    `E-Mail: ${email}`,
+    `Anzahl Besucher: ${besucher}`,
+    "",
+    "Ausgewählte Optionen:",
+    optionenText,
+    "",
+    `Gesamtpreis: ${eur(gesamtpreis)}`,
+  ].join("\n");
+
+  const mailtoUrl = `mailto:${config.targetEmail}?subject=${encodeURIComponent(betreff)}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoUrl;
+  status.textContent = "Dein E-Mail-Programm wird geöffnet – bitte die Nachricht dort absenden.";
+
+  try {
+    await fetch("/api/submit-registration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        email,
+        besucher,
+        optionen: ausgewaehlteOptionen,
+        gesamtpreis,
+      }),
+    });
+  } catch {
+    // E-Mail ist der primäre Weg; die Erfassung im Repo ist eine zusätzliche Ablage.
+  }
+});
+
+ladeKonfiguration();
