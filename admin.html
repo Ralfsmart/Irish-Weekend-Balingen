@@ -49,6 +49,10 @@
             <label for="apiBase">Cloudflare-Worker-URL (für Speichern &amp; Anmeldungen)</label>
             <input type="url" id="apiBase" name="apiBase" placeholder="https://set-dance-balingen.dein-name.workers.dev" />
           </div>
+          <div class="form-row">
+            <label for="maxBesucher">Maximale Besucherzahl (0 = keine Begrenzung)</label>
+            <input type="number" id="maxBesucher" name="maxBesucher" min="0" step="1" />
+          </div>
 
           <h2>Optionen</h2>
           <div id="options-editor"></div>
@@ -63,6 +67,38 @@
           <button type="submit" class="btn btn-primary">Speichern</button>
           <p id="admin-status" class="form-status" role="status"></p>
         </form>
+      </div>
+    </section>
+
+    <section class="section section-alt">
+      <div class="container">
+        <h2>Anmeldungen</h2>
+        <p class="section-note">
+          Nutzt das oben eingegebene Admin-Passwort und die Worker-URL.
+        </p>
+        <button type="button" id="anmeldungen-laden-btn" class="btn btn-secondary">Anmeldungen laden</button>
+        <p id="registrations-status" class="form-status" role="status"></p>
+
+        <details id="registrations-panel" class="registrations-panel" hidden>
+          <summary>Anmeldungen anzeigen (<span id="registrations-count">0</span>)</summary>
+          <div class="registrations-scroll">
+            <table id="registrations-table" class="registrations-table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Name</th>
+                  <th>E-Mail</th>
+                  <th>Besucher</th>
+                  <th>Optionen</th>
+                  <th>Gesamtpreis</th>
+                  <th>Datum</th>
+                </tr>
+              </thead>
+              <tbody id="registrations-tbody"></tbody>
+            </table>
+          </div>
+          <button type="button" id="csv-download-btn" class="btn btn-secondary">CSV herunterladen</button>
+        </details>
       </div>
     </section>
   </main>

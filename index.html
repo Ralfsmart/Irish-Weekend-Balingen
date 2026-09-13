@@ -36,6 +36,8 @@
         <div id="step-1">
           <h2>Anmeldung</h2>
 
+          <p id="kapazitaet-hinweis" class="section-note" hidden></p>
+
           <div id="options-list" class="options-list"></div>
 
           <form id="kontakt-form" class="registration-form" novalidate>
@@ -52,7 +54,10 @@
               <input type="email" id="email" name="email" required />
             </div>
 
-            <button type="submit" class="btn btn-primary">Weiter</button>
+            <div class="summary-actions">
+              <button type="button" id="abbrechen-btn" class="btn btn-secondary">Abbrechen</button>
+              <button type="submit" class="btn btn-primary">Weiter</button>
+            </div>
           </form>
         </div>
 
@@ -67,6 +72,7 @@
           <p class="summary-total">Gesamtpreis: <strong id="gesamtpreis">0,00 €</strong></p>
 
           <div class="summary-actions">
+            <button type="button" id="abbrechen-btn-2" class="btn btn-secondary">Abbrechen</button>
             <button type="button" id="zurueck-btn" class="btn btn-secondary">Zurück</button>
             <button type="button" id="senden-btn" class="btn btn-primary">Anmeldung senden</button>
           </div>

@@ -45,6 +45,7 @@ async function ladeKonfiguration() {
   document.getElementById("infoText2").value = config.infoText2 || "";
   document.getElementById("targetEmail").value = config.targetEmail || "";
   document.getElementById("apiBase").value = config.apiBase || "";
+  document.getElementById("maxBesucher").value = config.maxBesucher || 0;
 
   optionenState = (config.options || []).map((o) => ({ ...o }));
   renderOptionen();
@@ -64,6 +65,7 @@ document.getElementById("admin-form").addEventListener("submit", async (event) =
     infoText2: document.getElementById("infoText2").value.trim(),
     targetEmail: document.getElementById("targetEmail").value.trim(),
     apiBase,
+    maxBesucher: parseInt(document.getElementById("maxBesucher").value, 10) || 0,
     options: optionenState
       .filter((o) => o.label.trim().length > 0)
       .map((o) => ({ id: o.id, label: o.label.trim(), price: o.price })),
@@ -92,6 +94,86 @@ document.getElementById("admin-form").addEventListener("submit", async (event) =
   } catch (err) {
     status.textContent = `Fehler beim Speichern: ${err.message}`;
   }
+});
+
+let geladeneAnmeldungen = [];
+
+function csvFeld(wert) {
+  const text = String(wert ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+document.getElementById("anmeldungen-laden-btn").addEventListener("click", async () => {
+  const status = document.getElementById("registrations-status");
+  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+  const password = document.getElementById("admin-password").value;
+
+  if (!apiBase) {
+    status.textContent = "Fehler: Cloudflare-Worker-URL fehlt.";
+    return;
+  }
+  if (!password) {
+    status.textContent = "Bitte zuerst das Admin-Passwort oben eingeben.";
+    return;
+  }
+
+  status.textContent = "Lade Anmeldungen …";
+
+  try {
+    const res = await fetch(`${apiBase}/registrations`, {
+      headers: { "X-Admin-Password": password },
+    });
+
+    if (!res.ok) {
+      status.textContent = `Fehler: ${await res.text()}`;
+      return;
+    }
+
+    const daten = await res.json();
+    geladeneAnmeldungen = daten.anmeldungen || [];
+
+    const tbody = document.getElementById("registrations-tbody");
+    tbody.innerHTML = geladeneAnmeldungen.map((a) => `
+      <tr>
+        <td>${a.status === "warteliste" ? "Warteliste" : "Bestätigt"}</td>
+        <td>${a.name}</td>
+        <td>${a.email}</td>
+        <td>${a.besucher}</td>
+        <td>${a.optionen.replace(/\n/g, ", ")}</td>
+        <td>${a.gesamtpreis} €</td>
+        <td>${new Date(a.datum).toLocaleDateString("de-DE")}</td>
+      </tr>
+    `).join("");
+
+    document.getElementById("registrations-count").textContent = geladeneAnmeldungen.length;
+    document.getElementById("registrations-panel").hidden = false;
+    document.getElementById("registrations-panel").open = true;
+    status.textContent = "";
+  } catch (err) {
+    status.textContent = `Fehler beim Laden: ${err.message}`;
+  }
+});
+
+document.getElementById("csv-download-btn").addEventListener("click", () => {
+  const kopfzeile = ["Status", "Name", "E-Mail", "Besucher", "Optionen", "Gesamtpreis", "Datum"];
+  const zeilen = geladeneAnmeldungen.map((a) => [
+    a.status === "warteliste" ? "Warteliste" : "Bestätigt",
+    a.name,
+    a.email,
+    a.besucher,
+    a.optionen.replace(/\n/g, "; "),
+    a.gesamtpreis,
+    new Date(a.datum).toLocaleDateString("de-DE"),
+  ]);
+
+  const csv = [kopfzeile, ...zeilen].map((zeile) => zeile.map(csvFeld).join(",")).join("\n");
+  const blob = new Blob([`﻿${csv}`], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "anmeldungen.csv";
+  a.click();
+  URL.revokeObjectURL(url);
 });
 
 ladeKonfiguration();
