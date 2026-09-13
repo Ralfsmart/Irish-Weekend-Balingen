@@ -69,15 +69,18 @@ function formatiereRechnungsblock(optionen, gesamtpreis) {
   }
 
   const eintraege = optionen.map((o) => ({ label: o.label, preis: eur(o.price) }));
-  const maxLabelLaenge = Math.max(...eintraege.map((e) => e.label.length), gesamtLabel.length);
-  const maxPreisLaenge = Math.max(...eintraege.map((e) => e.preis.length), gesamtPreisText.length);
+  const alleEintraege = [...eintraege, { label: gesamtLabel, preis: gesamtPreisText }];
 
-  // Geschützte Leerzeichen ( ) statt normaler Leerzeichen, da manche
-  // Mail-Programme (z. B. Outlook im Rich-Text-Modus) mehrfache normale
-  // Leerzeichen wie in HTML zu einem einzigen zusammenfassen.
-  const zeile = (label, preis) =>
-    `${label.padEnd(maxLabelLaenge + 2, " ")}${preis.padStart(maxPreisLaenge, " ")}`;
-  const trennlinie = "━".repeat(maxLabelLaenge + 2 + maxPreisLaenge);
+  // Punkte statt Leerzeichen als Abstandshalter: Mail-Programme wie Outlook
+  // wandeln den Mailto-Text in ihr eigenes Rich-Text-Format um und
+  // normalisieren dabei auch geschützte Leerzeichen weg. Punkte sind
+  // sichtbare Zeichen und bleiben überall erhalten.
+  const zielBreite = Math.max(...alleEintraege.map((e) => e.label.length + e.preis.length)) + 6;
+  const zeile = (label, preis) => {
+    const punkte = Math.max(3, zielBreite - label.length - preis.length);
+    return `${label} ${".".repeat(punkte)} ${preis}`;
+  };
+  const trennlinie = "━".repeat(zielBreite + 2);
 
   return [
     ...eintraege.map((e) => zeile(e.label, e.preis)),
