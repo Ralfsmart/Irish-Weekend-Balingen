@@ -107,6 +107,10 @@ document.getElementById("senden-btn").addEventListener("click", async () => {
   window.location.href = mailtoUrl;
   status.textContent = "Dein E-Mail-Programm wird geöffnet – bitte die Nachricht dort absenden.";
 
+  document.getElementById("fallback-email").textContent = config.targetEmail;
+  document.getElementById("fallback-text").value = `Betreff: ${betreff}\n\n${body}`;
+  document.getElementById("fallback-block").hidden = false;
+
   if (config.apiBase) {
     try {
       await fetch(`${config.apiBase}/submit-registration`, {
@@ -123,6 +127,16 @@ document.getElementById("senden-btn").addEventListener("click", async () => {
     } catch {
       // E-Mail ist der primäre Weg; die Erfassung im Repo ist eine zusätzliche Ablage.
     }
+  }
+});
+
+document.getElementById("fallback-copy-btn").addEventListener("click", async () => {
+  const text = document.getElementById("fallback-text").value;
+  try {
+    await navigator.clipboard.writeText(text);
+    document.getElementById("fallback-copy-btn").textContent = "Kopiert!";
+  } catch {
+    document.getElementById("fallback-text").select();
   }
 });
 
