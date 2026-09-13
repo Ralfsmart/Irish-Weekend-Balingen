@@ -338,9 +338,21 @@ input:focus, textarea:focus {
   max-width: 640px;
 }
 
+.option-editor-header {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
 @media (max-width: 600px) {
   .option-editor-row {
     grid-template-columns: 1fr;
+  }
+
+  .option-editor-header {
+    display: none;
   }
 }
 

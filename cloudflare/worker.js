@@ -32,24 +32,29 @@ function corsHeaders(origin) {
 
 async function fetchConfig(env) {
   const res = await fetch(
-    `https://raw.githubusercontent.com/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/main/data/config.json`,
-    { headers: { "User-Agent": "set-dance-balingen-worker" }, cf: { cacheTtl: 0 } }
+    `https://raw.githubusercontent.com/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/main/data/config.json?t=${Date.now()}`,
+    { headers: { "User-Agent": "set-dance-balingen-worker" } }
   );
   if (!res.ok) return null;
   return res.json();
 }
+
+// Fine-grained GitHub-Tokens können hier keine Labels verwalten (nur Issues
+// anlegen/lesen). Anmeldungen werden deshalb nicht über Labels erkannt,
+// sondern über einen festen Marker im Issue-Text ("**Anzahl Besucher:**").
+const ANMELDUNG_MARKER = "**Anzahl Besucher:**";
 
 async function fetchAnmeldungIssues(env) {
   const issues = [];
   let page = 1;
   while (page <= 10) {
     const res = await fetch(
-      `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/issues?labels=anmeldung&state=all&per_page=100&page=${page}`,
+      `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/issues?state=all&per_page=100&page=${page}`,
       { headers: githubHeaders(env) }
     );
     if (!res.ok) break;
     const seite = await res.json();
-    issues.push(...seite);
+    issues.push(...seite.filter((issue) => (issue.body || "").includes(ANMELDUNG_MARKER)));
     if (seite.length < 100) break;
     page += 1;
   }
@@ -63,7 +68,7 @@ function parseIssue(issue) {
   const nameMatch = body.match(/\*\*Name:\*\*\s*(.+)/);
   const gesamtpreisMatch = body.match(/\*\*Gesamtpreis:\*\*\s*([\d.,]+)\s*€/);
   const optionenMatch = body.match(/\*\*Ausgewählte Optionen:\*\*\n([\s\S]*?)\n\n\*\*Gesamtpreis/);
-  const labelNamen = (issue.labels || []).map((l) => (typeof l === "string" ? l : l.name));
+  const statusMatch = body.match(/\*\*Status:\*\*\s*(.+)/);
 
   return {
     name: nameMatch ? nameMatch[1].trim() : "",
@@ -71,7 +76,7 @@ function parseIssue(issue) {
     besucher: besucherMatch ? parseInt(besucherMatch[1], 10) : 0,
     optionen: optionenMatch ? optionenMatch[1].trim() : "",
     gesamtpreis: gesamtpreisMatch ? gesamtpreisMatch[1] : "",
-    status: labelNamen.includes("warteliste") ? "warteliste" : "bestaetigt",
+    status: statusMatch && statusMatch[1].trim() === "Warteliste" ? "warteliste" : "bestaetigt",
     datum: issue.created_at,
     issueUrl: issue.html_url,
   };
@@ -135,7 +140,6 @@ async function handleSubmitRegistration(request, env) {
     body: JSON.stringify({
       title: `${titelPrefix}: ${name}`,
       body,
-      labels: ["anmeldung", status],
     }),
   });
 
