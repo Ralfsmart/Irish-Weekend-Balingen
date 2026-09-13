@@ -107,20 +107,22 @@ document.getElementById("senden-btn").addEventListener("click", async () => {
   window.location.href = mailtoUrl;
   status.textContent = "Dein E-Mail-Programm wird geöffnet – bitte die Nachricht dort absenden.";
 
-  try {
-    await fetch("/api/submit-registration", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        email,
-        besucher,
-        optionen: ausgewaehlteOptionen,
-        gesamtpreis,
-      }),
-    });
-  } catch {
-    // E-Mail ist der primäre Weg; die Erfassung im Repo ist eine zusätzliche Ablage.
+  if (config.apiBase) {
+    try {
+      await fetch(`${config.apiBase}/submit-registration`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          besucher,
+          optionen: ausgewaehlteOptionen,
+          gesamtpreis,
+        }),
+      });
+    } catch {
+      // E-Mail ist der primäre Weg; die Erfassung im Repo ist eine zusätzliche Ablage.
+    }
   }
 });
 

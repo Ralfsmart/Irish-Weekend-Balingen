@@ -44,6 +44,7 @@ async function ladeKonfiguration() {
   document.getElementById("infoText1").value = config.infoText1 || "";
   document.getElementById("infoText2").value = config.infoText2 || "";
   document.getElementById("targetEmail").value = config.targetEmail || "";
+  document.getElementById("apiBase").value = config.apiBase || "";
 
   optionenState = (config.options || []).map((o) => ({ ...o }));
   renderOptionen();
@@ -54,12 +55,15 @@ document.getElementById("admin-form").addEventListener("submit", async (event) =
   const status = document.getElementById("admin-status");
   status.textContent = "Speichere …";
 
+  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+
   const config = {
     headline: document.getElementById("headline").value.trim(),
     subheadline: document.getElementById("subheadline").value.trim(),
     infoText1: document.getElementById("infoText1").value.trim(),
     infoText2: document.getElementById("infoText2").value.trim(),
     targetEmail: document.getElementById("targetEmail").value.trim(),
+    apiBase,
     options: optionenState
       .filter((o) => o.label.trim().length > 0)
       .map((o) => ({ id: o.id, label: o.label.trim(), price: o.price })),
@@ -67,8 +71,13 @@ document.getElementById("admin-form").addEventListener("submit", async (event) =
 
   const password = document.getElementById("admin-password").value;
 
+  if (!apiBase) {
+    status.textContent = "Fehler: Cloudflare-Worker-URL fehlt. Beim allerersten Mal data/config.json direkt auf GitHub bearbeiten.";
+    return;
+  }
+
   try {
-    const res = await fetch("/api/admin-save", {
+    const res = await fetch(`${apiBase}/admin-save`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ password, config }),

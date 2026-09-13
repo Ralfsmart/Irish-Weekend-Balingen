@@ -4,6 +4,7 @@
   "infoText1": "Vorkenntnisse sind nicht erforderlich – alle Tänze werden vor Ort erklärt und gemeinsam eingeübt.",
   "infoText2": "Bitte bequeme Kleidung und Schuhe zum Tanzen mitbringen. Voraussichtlicher Termin: April 2027, langes Wochenende (genaues Datum folgt).",
   "targetEmail": "ralf.schultheiss@googlemail.com",
+  "apiBase": "",
   "options": [
     { "id": "ceili", "label": "Céilí-Abend", "price": 8 },
     { "id": "set-dance", "label": "Set Dance Abend", "price": 12 },
