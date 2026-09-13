@@ -79,16 +79,20 @@ function parseIssue(issue) {
     status: statusMatch && statusMatch[1].trim() === "Warteliste" ? "warteliste" : "bestaetigt",
     datum: issue.created_at,
     issueUrl: issue.html_url,
+    offen: issue.state === "open",
   };
 }
 
+// Ein geschlossenes Issue zählt nicht mehr zur Kapazität - so kann eine
+// stornierte/storno Anmeldung oder Testdaten einfach durch Schließen des
+// Issues auf GitHub aus der Belegung entfernt werden.
 async function berechneBelegung(env) {
   const config = await fetchConfig(env);
   const maxBesucher = Number(config && config.maxBesucher) || 0;
   const issues = await fetchAnmeldungIssues(env);
   const bestaetigt = issues
     .map(parseIssue)
-    .filter((a) => a.status === "bestaetigt");
+    .filter((a) => a.status === "bestaetigt" && a.offen);
   const aktuellBelegt = bestaetigt.reduce((summe, a) => summe + a.besucher, 0);
   return { maxBesucher, aktuellBelegt };
 }

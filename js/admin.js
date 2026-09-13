@@ -136,6 +136,7 @@ document.getElementById("anmeldungen-laden-btn").addEventListener("click", async
     tbody.innerHTML = geladeneAnmeldungen.map((a) => `
       <tr>
         <td>${a.status === "warteliste" ? "Warteliste" : "Bestätigt"}</td>
+        <td>${a.offen ? "Ja" : "Nein (geschlossen)"}</td>
         <td>${a.name}</td>
         <td>${a.email}</td>
         <td>${a.besucher}</td>
@@ -155,9 +156,10 @@ document.getElementById("anmeldungen-laden-btn").addEventListener("click", async
 });
 
 document.getElementById("csv-download-btn").addEventListener("click", () => {
-  const kopfzeile = ["Status", "Name", "E-Mail", "Besucher", "Optionen", "Gesamtpreis", "Datum"];
+  const kopfzeile = ["Status", "Zählt?", "Name", "E-Mail", "Besucher", "Optionen", "Gesamtpreis", "Datum"];
   const zeilen = geladeneAnmeldungen.map((a) => [
     a.status === "warteliste" ? "Warteliste" : "Bestätigt",
+    a.offen ? "Ja" : "Nein (geschlossen)",
     a.name,
     a.email,
     a.besucher,
