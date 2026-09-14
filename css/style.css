@@ -389,12 +389,21 @@ input:focus, textarea:focus {
   max-width: 640px;
 }
 
+.option-price-input {
+  text-align: right;
+  font-weight: bold;
+}
+
 .option-editor-header {
   font-family: var(--font-heading);
   font-size: 0.85rem;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.option-editor-header span:nth-child(2) {
+  text-align: right;
 }
 
 @media (max-width: 600px) {
