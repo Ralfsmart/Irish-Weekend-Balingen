@@ -1,18 +1,33 @@
 document.getElementById("jahr").textContent = new Date().getFullYear();
 
 let optionenState = [];
+let geladeneAnmeldungen = [];
+let aktuellesLevel = "none";
+let aktuellesPasswort = "";
+let quill1 = null;
+let quill2 = null;
+
+function apiBaseWert() {
+  return document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+}
+
+function csvFeld(wert) {
+  const text = String(wert ?? "");
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
 
 function renderOptionen() {
   const container = document.getElementById("options-editor");
   container.innerHTML = "";
+  const bearbeitbar = aktuellesLevel === "admin";
 
   optionenState.forEach((option, index) => {
     const row = document.createElement("div");
     row.className = "option-editor-row";
     row.innerHTML = `
-      <input type="text" class="option-label-input" placeholder="Bezeichnung" value="${option.label}" />
-      <input type="number" class="option-price-input" placeholder="Preis (€)" step="0.01" min="0" value="${option.price}" />
-      <button type="button" class="btn btn-secondary option-entfernen">Entfernen</button>
+      <input type="text" class="option-label-input" placeholder="Bezeichnung" value="${option.label}" ${bearbeitbar ? "" : "disabled"} />
+      <input type="number" class="option-price-input" placeholder="Preis (€)" step="0.01" min="0" value="${option.price}" ${bearbeitbar ? "" : "disabled"} />
+      <button type="button" class="btn btn-secondary option-entfernen" ${bearbeitbar ? "" : "hidden"}>Entfernen</button>
     `;
 
     row.querySelector(".option-label-input").addEventListener("input", (e) => {
@@ -35,14 +50,25 @@ document.getElementById("option-hinzufuegen").addEventListener("click", () => {
   renderOptionen();
 });
 
+function initQuill() {
+  const toolbarOptions = [
+    ["bold", "italic", "underline", "strike"],
+    [{ color: [] }],
+    [{ list: "ordered" }, { list: "bullet" }],
+    ["clean"],
+  ];
+  quill1 = new Quill("#infoText1-editor", { theme: "snow", modules: { toolbar: toolbarOptions } });
+  quill2 = new Quill("#infoText2-editor", { theme: "snow", modules: { toolbar: toolbarOptions } });
+}
+
 async function ladeKonfiguration() {
   const res = await fetch("data/config.json", { cache: "no-store" });
   const config = await res.json();
 
   document.getElementById("headline").value = config.headline || "";
   document.getElementById("subheadline").value = config.subheadline || "";
-  document.getElementById("infoText1").value = config.infoText1 || "";
-  document.getElementById("infoText2").value = config.infoText2 || "";
+  quill1.root.innerHTML = config.infoText1 || "";
+  quill2.root.innerHTML = config.infoText2 || "";
   document.getElementById("targetEmail").value = config.targetEmail || "";
   document.getElementById("apiBase").value = config.apiBase || "";
   document.getElementById("maxBesucher").value = config.maxBesucher || 0;
@@ -51,18 +77,84 @@ async function ladeKonfiguration() {
   renderOptionen();
 }
 
+function wendeLevelAufFormularAn() {
+  const bearbeitbar = aktuellesLevel === "admin";
+  const hinweis = document.getElementById("access-level-hinweis");
+  hinweis.textContent = bearbeitbar
+    ? "Bearbeiten-Modus: Änderungen können gespeichert werden."
+    : "Anzeige-Modus (nur lesen): Inhalte und Anmeldungen sind sichtbar, aber nicht änderbar.";
+
+  ["headline", "subheadline", "targetEmail", "apiBase", "maxBesucher"].forEach((id) => {
+    document.getElementById(id).disabled = !bearbeitbar;
+  });
+  quill1.enable(bearbeitbar);
+  quill2.enable(bearbeitbar);
+  document.getElementById("option-hinzufuegen").hidden = !bearbeitbar;
+  document.getElementById("save-row").hidden = !bearbeitbar;
+  document.getElementById("password-section").hidden = !bearbeitbar;
+  renderOptionen();
+}
+
+document.getElementById("unlock-btn").addEventListener("click", async () => {
+  const status = document.getElementById("unlock-status");
+  const passwort = document.getElementById("unlock-password").value;
+  const apiBase = apiBaseWert() || (await fetch("data/config.json", { cache: "no-store" }).then((r) => r.json()).then((c) => c.apiBase));
+
+  if (!apiBase) {
+    status.textContent = "Fehler: Cloudflare-Worker-URL ist in data/config.json nicht gesetzt.";
+    return;
+  }
+  if (!passwort) {
+    status.textContent = "Bitte ein Passwort eingeben.";
+    return;
+  }
+
+  status.textContent = "Prüfe Passwort …";
+
+  try {
+    const res = await fetch(`${apiBase}/verify-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: passwort }),
+    });
+    const { level } = await res.json();
+
+    if (level === "none") {
+      status.textContent = "Falsches Passwort.";
+      return;
+    }
+
+    aktuellesLevel = level;
+    aktuellesPasswort = passwort;
+    status.textContent = "";
+
+    document.getElementById("lock-screen").hidden = true;
+    document.getElementById("admin-content").hidden = false;
+    document.getElementById("registrations-section").hidden = false;
+
+    initQuill();
+    await ladeKonfiguration();
+    wendeLevelAufFormularAn();
+    await ladeAnmeldungen();
+  } catch (err) {
+    status.textContent = `Fehler: ${err.message}`;
+  }
+});
+
 document.getElementById("admin-form").addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (aktuellesLevel !== "admin") return;
+
   const status = document.getElementById("admin-status");
   status.textContent = "Speichere …";
 
-  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
+  const apiBase = apiBaseWert();
 
   const config = {
     headline: document.getElementById("headline").value.trim(),
     subheadline: document.getElementById("subheadline").value.trim(),
-    infoText1: document.getElementById("infoText1").value.trim(),
-    infoText2: document.getElementById("infoText2").value.trim(),
+    infoText1: quill1.root.innerHTML,
+    infoText2: quill2.root.innerHTML,
     targetEmail: document.getElementById("targetEmail").value.trim(),
     apiBase,
     maxBesucher: parseInt(document.getElementById("maxBesucher").value, 10) || 0,
@@ -71,10 +163,8 @@ document.getElementById("admin-form").addEventListener("submit", async (event) =
       .map((o) => ({ id: o.id, label: o.label.trim(), price: o.price })),
   };
 
-  const password = document.getElementById("admin-password").value;
-
   if (!apiBase) {
-    status.textContent = "Fehler: Cloudflare-Worker-URL fehlt. Beim allerersten Mal data/config.json direkt auf GitHub bearbeiten.";
+    status.textContent = "Fehler: Cloudflare-Worker-URL fehlt.";
     return;
   }
 
@@ -82,67 +172,59 @@ document.getElementById("admin-form").addEventListener("submit", async (event) =
     const res = await fetch(`${apiBase}/admin-save`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password, config }),
+      body: JSON.stringify({ password: aktuellesPasswort, config }),
     });
 
     if (res.ok) {
-      status.textContent = "Gespeichert – die Änderungen sind live.";
+      status.textContent = "Gespeichert – die Änderungen sind live. (Rich-Text-Inhalte werden serverseitig auf erlaubte Formatierungen geprüft.)";
     } else {
-      const text = await res.text();
-      status.textContent = `Fehler: ${text}`;
+      status.textContent = `Fehler: ${await res.text()}`;
     }
   } catch (err) {
     status.textContent = `Fehler beim Speichern: ${err.message}`;
   }
 });
 
-let geladeneAnmeldungen = [];
+document.getElementById("change-passwords-btn").addEventListener("click", async () => {
+  if (aktuellesLevel !== "admin") return;
+  const status = document.getElementById("password-status");
+  const apiBase = apiBaseWert();
+  const neuesAnzeige = document.getElementById("new-view-password").value.trim();
+  const neuesBearbeiten = document.getElementById("new-admin-password").value.trim();
 
-function csvFeld(wert) {
-  const text = String(wert ?? "");
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-document.getElementById("anmeldungen-laden-btn").addEventListener("click", async () => {
-  const status = document.getElementById("registrations-status");
-  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
-  const password = document.getElementById("admin-password").value;
-
-  if (!apiBase) {
-    status.textContent = "Fehler: Cloudflare-Worker-URL fehlt.";
-    return;
-  }
-  if (!password) {
-    status.textContent = "Bitte zuerst das Admin-Passwort oben eingeben.";
+  if (!neuesAnzeige && !neuesBearbeiten) {
+    status.textContent = "Bitte mindestens ein neues Passwort eingeben.";
     return;
   }
 
-  status.textContent = "Lade Anmeldungen …";
+  status.textContent = "Speichere Passwörter …";
 
   try {
-    const res = await fetch(`${apiBase}/registrations`, {
-      headers: { "X-Admin-Password": password },
+    const res = await fetch(`${apiBase}/change-passwords`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        password: aktuellesPasswort,
+        newViewPassword: neuesAnzeige || undefined,
+        newAdminPassword: neuesBearbeiten || undefined,
+      }),
     });
 
-    if (!res.ok) {
+    if (res.ok) {
+      status.textContent = "Passwörter gespeichert.";
+      if (neuesBearbeiten) aktuellesPasswort = neuesBearbeiten;
+      document.getElementById("new-view-password").value = "";
+      document.getElementById("new-admin-password").value = "";
+    } else {
       status.textContent = `Fehler: ${await res.text()}`;
-      return;
     }
-
-    const daten = await res.json();
-    geladeneAnmeldungen = daten.anmeldungen || [];
-    renderRegistrationsTable();
-
-    document.getElementById("registrations-count").textContent = geladeneAnmeldungen.length;
-    document.getElementById("registrations-panel").hidden = false;
-    document.getElementById("registrations-panel").open = true;
-    status.textContent = "";
   } catch (err) {
-    status.textContent = `Fehler beim Laden: ${err.message}`;
+    status.textContent = `Fehler: ${err.message}`;
   }
 });
 
 function renderRegistrationsTable() {
+  const bearbeitbar = aktuellesLevel === "admin";
   const tbody = document.getElementById("registrations-tbody");
   tbody.innerHTML = "";
 
@@ -150,20 +232,20 @@ function renderRegistrationsTable() {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>
-        <select class="reg-status">
+        <select class="reg-status" ${bearbeitbar ? "" : "disabled"}>
           <option value="bestaetigt" ${a.status === "bestaetigt" ? "selected" : ""}>Bestätigt</option>
           <option value="warteliste" ${a.status === "warteliste" ? "selected" : ""}>Warteliste</option>
         </select>
       </td>
-      <td><input type="text" class="reg-name" value="${a.name}" /></td>
-      <td><input type="email" class="reg-email" value="${a.email}" /></td>
-      <td><input type="number" class="reg-besucher" min="1" value="${a.besucher}" style="width:4rem" /></td>
-      <td><input type="text" class="reg-optionen" value="${a.optionen}" style="width:16rem" /></td>
-      <td><input type="number" class="reg-gesamtpreis" step="0.01" min="0" value="${a.gesamtpreis}" style="width:5rem" /></td>
+      <td><input type="text" class="reg-name" value="${a.name}" ${bearbeitbar ? "" : "disabled"} /></td>
+      <td><input type="email" class="reg-email" value="${a.email}" ${bearbeitbar ? "" : "disabled"} /></td>
+      <td><input type="number" class="reg-besucher" min="1" value="${a.besucher}" style="width:4rem" ${bearbeitbar ? "" : "disabled"} /></td>
+      <td><input type="text" class="reg-optionen" value="${a.optionen}" style="width:16rem" ${bearbeitbar ? "" : "disabled"} /></td>
+      <td><input type="number" class="reg-gesamtpreis" step="0.01" min="0" value="${a.gesamtpreis}" style="width:5rem" ${bearbeitbar ? "" : "disabled"} /></td>
       <td>${new Date(a.erstellt_am).toLocaleDateString("de-DE")}</td>
       <td>
-        <button type="button" class="btn btn-secondary reg-speichern">Speichern</button>
-        <button type="button" class="btn btn-secondary reg-loeschen">Löschen</button>
+        <button type="button" class="btn btn-secondary reg-speichern" ${bearbeitbar ? "" : "hidden"}>Speichern</button>
+        <button type="button" class="btn btn-secondary reg-loeschen" ${bearbeitbar ? "" : "hidden"}>Löschen</button>
       </td>
     `;
 
@@ -174,9 +256,34 @@ function renderRegistrationsTable() {
   });
 }
 
+async function ladeAnmeldungen() {
+  const status = document.getElementById("registrations-status");
+  const apiBase = apiBaseWert();
+
+  status.textContent = "Lade Anmeldungen …";
+
+  try {
+    const res = await fetch(`${apiBase}/registrations`, {
+      headers: { "X-Admin-Password": aktuellesPasswort },
+    });
+
+    if (!res.ok) {
+      status.textContent = `Fehler: ${await res.text()}`;
+      return;
+    }
+
+    const daten = await res.json();
+    geladeneAnmeldungen = daten.anmeldungen || [];
+    renderRegistrationsTable();
+    document.getElementById("registrations-count").textContent = geladeneAnmeldungen.length;
+    status.textContent = "";
+  } catch (err) {
+    status.textContent = `Fehler beim Laden: ${err.message}`;
+  }
+}
+
 async function aktualisiereAnmeldung(id, row) {
-  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
-  const password = document.getElementById("admin-password").value;
+  const apiBase = apiBaseWert();
   const registrationsStatus = document.getElementById("registrations-status");
 
   const config = {
@@ -193,13 +300,11 @@ async function aktualisiereAnmeldung(id, row) {
   try {
     const res = await fetch(`${apiBase}/registrations/${id}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", "X-Admin-Password": password },
+      headers: { "Content-Type": "application/json", "X-Admin-Password": aktuellesPasswort },
       body: JSON.stringify(config),
     });
 
-    registrationsStatus.textContent = res.ok
-      ? "Anmeldung gespeichert."
-      : `Fehler: ${await res.text()}`;
+    registrationsStatus.textContent = res.ok ? "Anmeldung gespeichert." : `Fehler: ${await res.text()}`;
   } catch (err) {
     registrationsStatus.textContent = `Fehler beim Speichern: ${err.message}`;
   }
@@ -208,14 +313,13 @@ async function aktualisiereAnmeldung(id, row) {
 async function loescheAnmeldung(id) {
   if (!window.confirm("Diese Anmeldung wirklich unwiderruflich löschen?")) return;
 
-  const apiBase = document.getElementById("apiBase").value.trim().replace(/\/$/, "");
-  const password = document.getElementById("admin-password").value;
+  const apiBase = apiBaseWert();
   const registrationsStatus = document.getElementById("registrations-status");
 
   try {
     const res = await fetch(`${apiBase}/registrations/${id}`, {
       method: "DELETE",
-      headers: { "X-Admin-Password": password },
+      headers: { "X-Admin-Password": aktuellesPasswort },
     });
 
     if (res.ok) {
@@ -252,5 +356,3 @@ document.getElementById("csv-download-btn").addEventListener("click", () => {
   a.click();
   URL.revokeObjectURL(url);
 });
-
-ladeKonfiguration();

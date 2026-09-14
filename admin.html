@@ -6,6 +6,7 @@
   <title>Set Dance Balingen – Admin</title>
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" />
 </head>
 <body>
   <header class="site-header">
@@ -18,74 +19,97 @@
   <main>
     <section class="section">
       <div class="container">
-        <h1>Admin – Inhalte bearbeiten</h1>
-        <p class="section-note">
-          Änderungen werden direkt als Commit in <code>data/config.json</code> im Repository gespeichert.
-          Dafür ist das Admin-Passwort erforderlich (wird serverseitig geprüft).
-        </p>
+        <h1>Admin</h1>
 
-        <form id="admin-form" class="registration-form">
+        <!-- Sperrbildschirm -->
+        <div id="lock-screen">
+          <p class="section-note">
+            Bitte Passwort eingeben. Das Anzeige-Passwort zeigt alle Inhalte
+            und Anmeldungen nur zum Lesen, das Bearbeiten-Passwort erlaubt
+            zusätzlich Änderungen und Speichern.
+          </p>
           <div class="form-row">
-            <label for="headline">Überschrift</label>
-            <input type="text" id="headline" name="headline" />
+            <label for="unlock-password">Passwort</label>
+            <input type="password" id="unlock-password" />
           </div>
-          <div class="form-row">
-            <label for="subheadline">Subtext zur Überschrift</label>
-            <input type="text" id="subheadline" name="subheadline" />
-          </div>
-          <div class="form-row">
-            <label for="infoText1">Info-Text 1</label>
-            <textarea id="infoText1" name="infoText1" rows="3"></textarea>
-          </div>
-          <div class="form-row">
-            <label for="infoText2">Info-Text 2</label>
-            <textarea id="infoText2" name="infoText2" rows="3"></textarea>
-          </div>
-          <div class="form-row">
-            <label for="targetEmail">Ziel-E-Mail-Adresse für Anmeldungen</label>
-            <input type="email" id="targetEmail" name="targetEmail" />
-          </div>
-          <div class="form-row">
-            <label for="apiBase">Cloudflare-Worker-URL (für Speichern &amp; Anmeldungen)</label>
-            <input type="url" id="apiBase" name="apiBase" placeholder="https://set-dance-balingen.dein-name.workers.dev" />
-          </div>
-          <div class="form-row">
-            <label for="maxBesucher">Maximale Besucherzahl (0 = keine Begrenzung)</label>
-            <input type="number" id="maxBesucher" name="maxBesucher" min="0" step="1" />
-          </div>
+          <button type="button" id="unlock-btn" class="btn btn-primary">Entsperren</button>
+          <p id="unlock-status" class="form-status" role="status"></p>
+        </div>
 
-          <h2>Optionen</h2>
-          <div class="option-editor-row option-editor-header">
-            <span>Beschreibung</span>
-            <span>Preis (€)</span>
-            <span></span>
-          </div>
-          <div id="options-editor"></div>
-          <button type="button" id="option-hinzufuegen" class="btn btn-secondary">+ Option hinzufügen</button>
+        <!-- Inhalt, erst nach Entsperren sichtbar -->
+        <div id="admin-content" hidden>
+          <p id="access-level-hinweis" class="section-note"></p>
 
-          <h2>Admin-Passwort</h2>
-          <div class="form-row">
-            <label for="admin-password">Passwort *</label>
-            <input type="password" id="admin-password" name="admin-password" required />
-          </div>
+          <form id="admin-form" class="registration-form">
+            <div class="form-row">
+              <label for="headline">Überschrift</label>
+              <input type="text" id="headline" name="headline" />
+            </div>
+            <div class="form-row">
+              <label for="subheadline">Subtext zur Überschrift</label>
+              <input type="text" id="subheadline" name="subheadline" />
+            </div>
+            <div class="form-row">
+              <label for="infoText1-editor">Info-Text 1</label>
+              <div id="infoText1-editor" class="rich-editor"></div>
+            </div>
+            <div class="form-row">
+              <label for="infoText2-editor">Info-Text 2</label>
+              <div id="infoText2-editor" class="rich-editor"></div>
+            </div>
+            <div class="form-row">
+              <label for="targetEmail">Ziel-E-Mail-Adresse für Anmeldungen</label>
+              <input type="email" id="targetEmail" name="targetEmail" />
+            </div>
+            <div class="form-row">
+              <label for="apiBase">Cloudflare-Worker-URL (für Speichern &amp; Anmeldungen)</label>
+              <input type="url" id="apiBase" name="apiBase" placeholder="https://set-dance-balingen.dein-name.workers.dev" />
+            </div>
+            <div class="form-row">
+              <label for="maxBesucher">Maximale Besucherzahl (0 = keine Begrenzung)</label>
+              <input type="number" id="maxBesucher" name="maxBesucher" min="0" step="1" />
+            </div>
 
-          <button type="submit" class="btn btn-primary">Speichern</button>
-          <p id="admin-status" class="form-status" role="status"></p>
-        </form>
+            <h2>Optionen</h2>
+            <div class="option-editor-row option-editor-header">
+              <span>Beschreibung</span>
+              <span>Preis (€)</span>
+              <span></span>
+            </div>
+            <div id="options-editor"></div>
+            <button type="button" id="option-hinzufuegen" class="btn btn-secondary">+ Option hinzufügen</button>
+
+            <div id="save-row">
+              <button type="submit" id="save-btn" class="btn btn-primary">Speichern</button>
+            </div>
+            <p id="admin-status" class="form-status" role="status"></p>
+          </form>
+
+          <div id="password-section" hidden>
+            <h2>Passwörter ändern</h2>
+            <p class="section-note">Leer lassen, um ein Passwort unverändert zu lassen. Zum Speichern ist das aktuelle Bearbeiten-Passwort nötig (oben eingegeben).</p>
+            <div class="form-row">
+              <label for="new-view-password">Neues Anzeige-Passwort</label>
+              <input type="text" id="new-view-password" />
+            </div>
+            <div class="form-row">
+              <label for="new-admin-password">Neues Bearbeiten-Passwort</label>
+              <input type="text" id="new-admin-password" />
+            </div>
+            <button type="button" id="change-passwords-btn" class="btn btn-secondary">Passwörter speichern</button>
+            <p id="password-status" class="form-status" role="status"></p>
+          </div>
+        </div>
       </div>
     </section>
 
-    <section class="section section-alt">
+    <section class="section section-alt" id="registrations-section" hidden>
       <div class="container">
         <h2>Anmeldungen</h2>
-        <p class="section-note">
-          Nutzt das oben eingegebene Admin-Passwort und die Worker-URL.
-        </p>
-        <button type="button" id="anmeldungen-laden-btn" class="btn btn-secondary">Anmeldungen laden</button>
         <p id="registrations-status" class="form-status" role="status"></p>
 
-        <details id="registrations-panel" class="registrations-panel" hidden>
-          <summary>Anmeldungen anzeigen (<span id="registrations-count">0</span>)</summary>
+        <div id="registrations-panel" class="registrations-panel">
+          <p class="section-note"><span id="registrations-count">0</span> Anmeldung(en)</p>
           <div class="registrations-scroll">
             <table id="registrations-table" class="registrations-table">
               <thead>
@@ -104,7 +128,7 @@
             </table>
           </div>
           <button type="button" id="csv-download-btn" class="btn btn-secondary">CSV herunterladen</button>
-        </details>
+        </div>
       </div>
     </section>
   </main>
@@ -115,6 +139,7 @@
     </div>
   </footer>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

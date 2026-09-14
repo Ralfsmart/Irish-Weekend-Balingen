@@ -11,8 +11,10 @@ async function ladeKonfiguration() {
 
   document.getElementById("headline").textContent = config.headline || "";
   document.getElementById("subheadline").textContent = config.subheadline || "";
-  document.getElementById("info-text-1").textContent = config.infoText1 || "";
-  document.getElementById("info-text-2").textContent = config.infoText2 || "";
+  // infoText1/infoText2 kommen bereits serverseitig sanitisiert (Allowlist,
+  // siehe Worker) aus data/config.json - deshalb ist innerHTML hier sicher.
+  document.getElementById("info-text-1").innerHTML = config.infoText1 || "";
+  document.getElementById("info-text-2").innerHTML = config.infoText2 || "";
 
   const liste = document.getElementById("options-list");
   liste.innerHTML = "";
