@@ -11,6 +11,8 @@
 // - DELETE /registrations/:id    -> Level "admin", Anmeldung löschen
 // - POST   /admin-save           -> Level "admin", committet data/config.json
 // - POST   /change-passwords     -> Level "admin", ändert die Passwörter
+// - POST   /upload-logo          -> Level "admin", ersetzt img/icons/logo.png
+//                                    (Header-Logo, Favicon, Social-Share-Bild)
 //
 // Anmeldungen und die beiden (gehashten) Admin-Passwörter liegen in der
 // D1-Datenbank (env.DB) - beides ist von außen nie direkt erreichbar, nur
@@ -297,6 +299,82 @@ async function handleAdminSave(request, env) {
   });
 }
 
+const PNG_SIGNATUR = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+
+function istGueltigesPng(bytes) {
+  return PNG_SIGNATUR.every((b, i) => bytes[i] === b);
+}
+
+// Prüft die Base64-Länge grob gegen ein Byte-Limit, ohne vorher zu dekodieren.
+function base64LaengeUeberschreitetLimit(base64, maxBytes) {
+  const geschaetzteBytes = (base64.length * 3) / 4;
+  return geschaetzteBytes > maxBytes;
+}
+
+async function handleUploadLogo(request, env) {
+  const daten = await request.json().catch(() => null);
+  if (!daten) return new Response("Ungültiges JSON.", { status: 400 });
+
+  const level = await ermittleLevel(env, daten.password);
+  if (level !== "admin") {
+    return new Response("Falsches Admin-Passwort.", { status: 401 });
+  }
+
+  const { imageBase64 } = daten;
+  if (typeof imageBase64 !== "string" || !imageBase64) {
+    return new Response("Kein Bild übergeben.", { status: 400 });
+  }
+
+  const base64Data = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
+  const MAX_BYTES = 2 * 1024 * 1024;
+
+  if (base64LaengeUeberschreitetLimit(base64Data, MAX_BYTES)) {
+    return new Response("Bild ist zu groß (max. 2 MB).", { status: 400 });
+  }
+
+  let bytes;
+  try {
+    bytes = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+  } catch {
+    return new Response("Ungültige Bilddaten.", { status: 400 });
+  }
+
+  if (bytes.length > MAX_BYTES) {
+    return new Response("Bild ist zu groß (max. 2 MB).", { status: 400 });
+  }
+  if (!istGueltigesPng(bytes)) {
+    return new Response("Nur PNG-Bilder werden unterstützt.", { status: 400 });
+  }
+
+  const path = "img/icons/logo.png";
+  const headers = githubHeaders(env);
+
+  const bestehendeDatei = await fetch(
+    `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${path}`,
+    { headers }
+  );
+  const sha = bestehendeDatei.ok ? (await bestehendeDatei.json()).sha : undefined;
+
+  const res = await fetch(`${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${path}`, {
+    method: "PUT",
+    headers,
+    body: JSON.stringify({
+      message: "Logo/Icon über Admin-Seite aktualisiert",
+      content: base64Data,
+      ...(sha ? { sha } : {}),
+    }),
+  });
+
+  if (!res.ok) {
+    return new Response(`GitHub-Fehler beim Schreiben: ${await res.text()}`, { status: 502 });
+  }
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 export default {
   async fetch(request, env) {
     const origin = request.headers.get("Origin");
@@ -318,6 +396,8 @@ export default {
       response = await handleVerifyPassword(request, env);
     } else if (url.pathname === "/change-passwords" && request.method === "POST") {
       response = await handleChangePasswords(request, env);
+    } else if (url.pathname === "/upload-logo" && request.method === "POST") {
+      response = await handleUploadLogo(request, env);
     } else if (url.pathname === "/registrations" && request.method === "GET") {
       response = await handleListRegistrations(request, env);
     } else if (registrationIdMatch && request.method === "PATCH") {

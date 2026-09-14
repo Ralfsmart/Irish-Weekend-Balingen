@@ -69,11 +69,22 @@ a {
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   font-family: var(--font-heading);
   font-weight: bold;
   font-size: 1.25rem;
   color: var(--color-primary-dark);
   text-decoration: none;
+}
+
+.logo-icon {
+  height: 36px;
+  width: 36px;
+  object-fit: cover;
+  border-radius: 7px;
+  box-shadow: 0 1px 3px rgba(46, 36, 32, 0.3);
 }
 
 .logo span {
@@ -238,6 +249,22 @@ input, textarea {
 
 #lock-screen {
   max-width: 420px;
+}
+
+#logo-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.logo-upload-preview {
+  display: block;
+  height: 96px;
+  width: 96px;
+  object-fit: cover;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(46, 36, 32, 0.25);
+  margin: 1rem 0;
 }
 
 #access-level-hinweis {

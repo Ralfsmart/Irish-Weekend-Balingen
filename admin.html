@@ -5,16 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Set Dance Balingen – Admin</title>
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="icon" type="image/png" sizes="32x32" href="img/icons/favicon-32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="img/icons/favicon-16.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="img/icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="img/icons/logo.png" />
+  <link rel="apple-touch-icon" href="img/icons/logo.png" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css" />
 </head>
 <body>
   <header class="site-header">
     <div class="container header-inner">
-      <a href="index.html" class="logo">Set&nbsp;Dance<span>Balingen</span></a>
+      <a href="index.html" class="logo"><img src="img/icons/logo.png" alt="" class="logo-icon" />Set&nbsp;Dance<span>Balingen</span></a>
       <nav class="main-nav"><a href="index.html">Zur Anmeldeseite</a></nav>
     </div>
   </header>
@@ -42,6 +41,20 @@
         <!-- Inhalt, erst nach Entsperren sichtbar -->
         <div id="admin-content" hidden>
           <p id="access-level-hinweis" class="section-note"></p>
+
+          <div id="logo-section">
+            <h2>Logo / Icon</h2>
+            <p class="section-note">
+              Erscheint oben im Header neben "Set Dance Balingen", als Browser-Tab-Icon
+              und als Vorschaubild beim Teilen des Links. Nur PNG, möglichst quadratisch, max. 2&nbsp;MB.
+            </p>
+            <img id="logo-preview" src="img/icons/logo.png" alt="" class="logo-upload-preview" />
+            <div class="form-row">
+              <input type="file" id="logo-upload" accept="image/png" />
+            </div>
+            <button type="button" id="logo-upload-btn" class="btn btn-secondary">Logo hochladen</button>
+            <p id="logo-status" class="form-status" role="status"></p>
+          </div>
 
           <form id="admin-form" class="registration-form">
             <div class="form-row">

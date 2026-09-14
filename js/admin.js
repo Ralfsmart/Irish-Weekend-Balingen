@@ -6,6 +6,7 @@ let aktuellesLevel = "none";
 let aktuellesPasswort = "";
 let quill1 = null;
 let quill2 = null;
+let ausgewaehltesLogo = null;
 
 function apiBaseWert() {
   return document.getElementById("apiBase").value.trim().replace(/\/$/, "");
@@ -92,6 +93,8 @@ function wendeLevelAufFormularAn() {
   document.getElementById("option-hinzufuegen").hidden = !bearbeitbar;
   document.getElementById("save-row").hidden = !bearbeitbar;
   document.getElementById("password-section").hidden = !bearbeitbar;
+  document.getElementById("logo-upload").hidden = !bearbeitbar;
+  document.getElementById("logo-upload-btn").hidden = !bearbeitbar;
   renderOptionen();
 }
 
@@ -220,6 +223,58 @@ document.getElementById("change-passwords-btn").addEventListener("click", async 
     }
   } catch (err) {
     status.textContent = `Fehler: ${err.message}`;
+  }
+});
+
+document.getElementById("logo-upload").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  const status = document.getElementById("logo-status");
+  if (!file) return;
+
+  if (file.type !== "image/png") {
+    status.textContent = "Bitte eine PNG-Datei auswählen.";
+    e.target.value = "";
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    status.textContent = "Datei ist zu groß (max. 2 MB).";
+    e.target.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    ausgewaehltesLogo = reader.result;
+    document.getElementById("logo-preview").src = reader.result;
+    status.textContent = "Vorschau aktualisiert – zum Übernehmen auf \"Logo hochladen\" klicken.";
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("logo-upload-btn").addEventListener("click", async () => {
+  if (aktuellesLevel !== "admin") return;
+  const status = document.getElementById("logo-status");
+
+  if (!ausgewaehltesLogo) {
+    status.textContent = "Bitte zuerst eine PNG-Datei auswählen.";
+    return;
+  }
+
+  const apiBase = apiBaseWert();
+  status.textContent = "Lade Logo hoch …";
+
+  try {
+    const res = await fetch(`${apiBase}/upload-logo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: aktuellesPasswort, imageBase64: ausgewaehltesLogo }),
+    });
+
+    status.textContent = res.ok
+      ? "Logo gespeichert – die Änderung ist live."
+      : `Fehler: ${await res.text()}`;
+  } catch (err) {
+    status.textContent = `Fehler beim Hochladen: ${err.message}`;
   }
 });
 
