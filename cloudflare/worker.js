@@ -4,17 +4,18 @@
 // - GET    /registration-status  -> öffentlich, liefert freie Plätze (Kapazität)
 // - POST   /submit-registration  -> speichert eine Anmeldung in D1
 //                                    (Status "bestaetigt" oder "warteliste")
-// - GET    /registrations        -> admin-only, alle Anmeldungen für die
-//                                    Tabelle im Admin-Tool
-// - PATCH  /registrations/:id    -> admin-only, Felder/Status einer
-//                                    Anmeldung bearbeiten
-// - DELETE /registrations/:id    -> admin-only, Anmeldung ganz löschen
-// - POST   /admin-save           -> admin-only, committet data/config.json
-//                                    auf GitHub
+// - POST   /verify-password      -> öffentlich, prüft ein Passwort und liefert
+//                                    das Zugriffslevel ("admin" | "view" | "none")
+// - GET    /registrations        -> Level "view" oder "admin", alle Anmeldungen
+// - PATCH  /registrations/:id    -> Level "admin", Felder/Status bearbeiten
+// - DELETE /registrations/:id    -> Level "admin", Anmeldung löschen
+// - POST   /admin-save           -> Level "admin", committet data/config.json
+// - POST   /change-passwords     -> Level "admin", ändert die Passwörter
 //
-// Anmeldungen liegen in der D1-Datenbank (env.DB) - kein Umweg mehr über
-// GitHub Issues. Inhalte (data/config.json) bleiben weiterhin ein GitHub-
-// Commit, dafür wird das GitHub-Token als Worker-Secret gebraucht.
+// Anmeldungen und die beiden (gehashten) Admin-Passwörter liegen in der
+// D1-Datenbank (env.DB) - beides ist von außen nie direkt erreichbar, nur
+// über diesen Worker. data/config.json bleibt ein GitHub-Commit, dafür wird
+// das GitHub-Token als Worker-Secret gebraucht.
 
 const GITHUB_API = "https://api.github.com";
 
@@ -35,8 +36,60 @@ function corsHeaders(origin) {
   };
 }
 
-function pruefeAdminPasswort(request, env) {
-  return request.headers.get("X-Admin-Password") === env.ADMIN_PASSWORD;
+async function hashPasswort(text) {
+  const data = new TextEncoder().encode("set-dance-balingen::" + text);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function holeSettings(env) {
+  const { results } = await env.DB.prepare(
+    "SELECT view_password_hash, admin_password_hash FROM admin_settings WHERE id = 1"
+  ).all();
+  return results[0] || null;
+}
+
+// Liefert das Zugriffslevel für ein eingegebenes Passwort: "admin", "view"
+// oder "none". Wird von allen geschützten Endpunkten genutzt.
+async function ermittleLevel(env, passwort) {
+  if (!passwort) return "none";
+  const settings = await holeSettings(env);
+  if (!settings) return "none";
+  const hash = await hashPasswort(passwort);
+  if (hash === settings.admin_password_hash) return "admin";
+  if (hash === settings.view_password_hash) return "view";
+  return "none";
+}
+
+function passwortAusRequest(request, daten) {
+  return request.headers.get("X-Admin-Password") || (daten && daten.password) || null;
+}
+
+// Sehr eingeschränkter HTML-Allowlist-Sanitizer für die formatierbaren
+// Textfelder (infoText1/infoText2). Läuft server-seitig beim Speichern, da
+// dieser HTML-Code später ungefiltert auf der öffentlichen Seite per
+// innerHTML angezeigt wird - erlaubt sind nur einfache Textformatierungen,
+// keine Skripte, Links, Bilder oder Event-Handler.
+const ERLAUBTE_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "span"]);
+
+function sanitizeRichText(html) {
+  if (typeof html !== "string") return "";
+  // Kompletten Inhalt gefährlicher Tags entfernen (inkl. verschachtelter Inhalte)
+  let clean = html.replace(/<(script|style|iframe|object|embed|link|meta|form)[^>]*>[\s\S]*?<\/\1\s*>/gi, "");
+  // Übrige Tags gegen die Allowlist prüfen, alle Attribute außer einer engen
+  // "color"-Style-Angabe bei <span> verwerfen.
+  clean = clean.replace(/<\/?([a-zA-Z0-9]+)([^>]*)>/g, (match, tag, attrs) => {
+    const lower = tag.toLowerCase();
+    if (!ERLAUBTE_TAGS.has(lower)) return "";
+    const istEndTag = match.startsWith("</");
+    if (istEndTag) return `</${lower}>`;
+    if (lower === "span") {
+      const farbe = attrs.match(/style\s*=\s*"[^"]*color:\s*(#[0-9a-fA-F]{3,8}|rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\))[^"]*"/i);
+      if (farbe) return `<span style="color:${farbe[1]}">`;
+    }
+    return `<${lower}>`;
+  });
+  return clean;
 }
 
 // raw.githubusercontent.com liegt hinter einem CDN, das Cache-Busting per
@@ -104,9 +157,44 @@ async function handleSubmitRegistration(request, env) {
   });
 }
 
-async function handleListRegistrations(request, env) {
-  if (!pruefeAdminPasswort(request, env)) {
+async function handleVerifyPassword(request, env) {
+  const daten = await request.json().catch(() => null);
+  const level = await ermittleLevel(env, daten && daten.password);
+  return new Response(JSON.stringify({ level }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function handleChangePasswords(request, env) {
+  const daten = await request.json().catch(() => null);
+  if (!daten) return new Response("Ungültiges JSON.", { status: 400 });
+
+  const level = await ermittleLevel(env, daten.password);
+  if (level !== "admin") {
     return new Response("Falsches Admin-Passwort.", { status: 401 });
+  }
+
+  const settings = await holeSettings(env);
+  const neuesAnzeigePasswort = daten.newViewPassword ? await hashPasswort(daten.newViewPassword) : settings.view_password_hash;
+  const neuesAdminPasswort = daten.newAdminPassword ? await hashPasswort(daten.newAdminPassword) : settings.admin_password_hash;
+
+  await env.DB.prepare(
+    "UPDATE admin_settings SET view_password_hash = ?, admin_password_hash = ? WHERE id = 1"
+  )
+    .bind(neuesAnzeigePasswort, neuesAdminPasswort)
+    .run();
+
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function handleListRegistrations(request, env) {
+  const level = await ermittleLevel(env, passwortAusRequest(request, null));
+  if (level === "none") {
+    return new Response("Falsches Passwort.", { status: 401 });
   }
 
   const { results } = await env.DB.prepare(
@@ -120,12 +208,13 @@ async function handleListRegistrations(request, env) {
 }
 
 async function handleUpdateRegistration(request, env, id) {
-  if (!pruefeAdminPasswort(request, env)) {
-    return new Response("Falsches Admin-Passwort.", { status: 401 });
-  }
-
   const daten = await request.json().catch(() => null);
   if (!daten) return new Response("Ungültiges JSON.", { status: 400 });
+
+  const level = await ermittleLevel(env, passwortAusRequest(request, daten));
+  if (level !== "admin") {
+    return new Response("Falsches Admin-Passwort.", { status: 401 });
+  }
 
   const erlaubteFelder = ["name", "email", "besucher", "optionen", "gesamtpreis", "status"];
   const updates = Object.entries(daten).filter(([feld]) => erlaubteFelder.includes(feld));
@@ -147,7 +236,8 @@ async function handleUpdateRegistration(request, env, id) {
 }
 
 async function handleDeleteRegistration(request, env, id) {
-  if (!pruefeAdminPasswort(request, env)) {
+  const level = await ermittleLevel(env, passwortAusRequest(request, null));
+  if (level !== "admin") {
     return new Response("Falsches Admin-Passwort.", { status: 401 });
   }
 
@@ -164,12 +254,16 @@ async function handleAdminSave(request, env) {
   if (!daten) return new Response("Ungültiges JSON.", { status: 400 });
 
   const { password, config } = daten;
-  if (password !== env.ADMIN_PASSWORD) {
+  const level = await ermittleLevel(env, password);
+  if (level !== "admin") {
     return new Response("Falsches Admin-Passwort.", { status: 401 });
   }
   if (!config || typeof config !== "object") {
     return new Response("Keine gültige Konfiguration übergeben.", { status: 400 });
   }
+
+  if (typeof config.infoText1 === "string") config.infoText1 = sanitizeRichText(config.infoText1);
+  if (typeof config.infoText2 === "string") config.infoText2 = sanitizeRichText(config.infoText2);
 
   const path = "data/config.json";
   const bestehendeDatei = await fetch(
@@ -220,6 +314,10 @@ export default {
       response = await handleRegistrationStatus(request, env);
     } else if (url.pathname === "/submit-registration" && request.method === "POST") {
       response = await handleSubmitRegistration(request, env);
+    } else if (url.pathname === "/verify-password" && request.method === "POST") {
+      response = await handleVerifyPassword(request, env);
+    } else if (url.pathname === "/change-passwords" && request.method === "POST") {
+      response = await handleChangePasswords(request, env);
     } else if (url.pathname === "/registrations" && request.method === "GET") {
       response = await handleListRegistrations(request, env);
     } else if (registrationIdMatch && request.method === "PATCH") {
