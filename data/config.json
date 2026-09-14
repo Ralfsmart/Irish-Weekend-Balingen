@@ -1,36 +1,26 @@
 {
-  "headline": "Set Dance in Balingen",
-  "subheadline": "Tanzen, Musik und gute Gesellschaft im Haus des Volkstanzens",
-  "infoText1": "<p>Vorkenntnisse sind nicht erforderlich – alle Tänze werden vor Ort erklärt und gemeinsam eingeübt.</p>",
-  "infoText2": "Bitte bequeme Kleidung und Schuhe zum Tanzen mitbringen. Voraussichtlicher Termin: April 2027, langes Wochenende (genaues Datum folgt).",
+  "headline": "IRISH  WEEKEND - 9.-11. April  2027  BALINGEN",
+  "subheadline": "vormals Irish Weekend am Bodensee",
+  "infoText1": "<p><strong>Tim Flaherty</strong> aus Belfast ist ein weitbekannter Set-Dance-Lehrer. Neben seinem Schaffen auf der grünen Insel gibt Tim regelmäßig Workshops in Frankreich, Italien, Deutschland und der Schweiz. Mit viel Erfahrung und mit seinem ausgeprägten „sanften Humor“ weiß er auch komplexere Abläufe des Set-Dancing zu vermitteln!&nbsp;&nbsp;</p><p><br></p><p>Die fünf Musiker der <strong>Rhine Valley Céilí Band </strong>kommen von beiden Seiten des Rheins und spielen traditionelle Musik für Irish Set Dance. Seit 2012 begeistern sie mit ihrem einzigartigen Sound, tollen Tunes und ihrer Spielfreude: <strong>Uli Dörsch </strong>(Piano), <strong>Anne Seeger </strong>(Whistle), <strong>Frank Weber</strong> (Uilleann Pipes), <strong>Marion Fluck </strong>(Irish Flute), <strong>Marcus Eichenlaub </strong>(Irish Fiddle).</p><p><br></p><p><strong>Ger Murphy </strong>ist vor allem als Akkordeonspieler der Abbey Céilí Band bekannt, einer der beliebtesten Bands in Irland.&nbsp;<strong>Uli Dörsch </strong>ist Mitglied der Rhine Valley Céilí Band. Das Zusammenspiel von Ger und Uli war letztes Jahr ein großer Erfolg, daher freuen wir uns auf die Neuauflage!&nbsp;</p><p><br></p><p><br></p>",
+  "infoText2": "<ul><li>Ort:&nbsp;&nbsp;Haus der Volkskunst&nbsp;Ebinger Straße 52-56, 72336 Balingen - Dürrwangen&nbsp;Anreise mit ÖPNV (Angaben ohne Gewähr):&nbsp;&nbsp;Nächster Bahnhof: ca. 1,7 km Frommern, RB 66 (Tübingen-Sigmaringen)&nbsp;&nbsp;Nächste Bushaltestellen: ca. 100 m Dürrwangen Catrina, (AST) 16 (ab Busbahnhof Balingen)&nbsp;&nbsp;Dürrwangen Franziskanerstr, 314 (Balingen – Ebingen)&nbsp; </li><li>Programm: </li><li><strong> Freitag 9. April: </strong></li><li> Ab 17:00 Uhr - Ankommen</li><li>18:00 Uhr - Abendessen</li><li> 19:30 Uhr - Céilí mit Ger &amp; Uli </li><li>Danach Session im Gastraum </li><li> <strong>Samstag, 10. April:</strong></li><li> 8:00 Uhr - Frühstück </li><li> 9:30 Uhr - Workshop </li><li> 12:00 Uhr - Mittagessen </li><li> 14:00 Uhr - Workshop/Céilí mit der Rhine Valley Céilí Band </li><li> 18:00 Uhr - Abendessen </li><li> 20:00 Uhr -&nbsp;Céilí mit Ger &amp; Uli </li><li>Danach Session im Gastraum </li><li> <strong>Sonntag, 11. April: </strong></li><li> 8:30 Uhr - Frühstück </li><li> 10:00 Uhr - Céilí mit der Rhine Valley Céilí Band </li><li> 12:00 Uhr - Mittagessen </li><li> 13:30 Uhr - Céilí mit Ger &amp; Uli </li><li> 15:30 Uhr - Ende&nbsp;</li></ul>",
   "targetEmail": "ralf.schultheiss@googlemail.com",
   "apiBase": "https://set-dance-balingen.ralfsmart.workers.dev",
   "maxBesucher": 5,
   "options": [
     {
       "id": "ceili",
-      "label": "Céilí-Abend",
-      "price": 8
+      "label": "Eintritt Vollpension im Mehrbettzimmer",
+      "price": 260
     },
     {
       "id": "set-dance",
-      "label": "Set Dance Abend",
-      "price": 12
+      "label": "Eintritt und Vollpension im Doppelzimmer",
+      "price": 290
     },
     {
       "id": "workshop",
-      "label": "Workshop – Sets lernen",
-      "price": 15
-    },
-    {
-      "id": "uebernachtung-mehrbett",
-      "label": "Übernachtung im Mehrbettzimmer",
-      "price": 20
-    },
-    {
-      "id": "uebernachtung-einzel",
-      "label": "Übernachtung im Einzelzimmer",
-      "price": 35
+      "label": "Eintritt, ohne Übernachtung, alle Mahlzeiten",
+      "price": 210
     }
   ]
 }
