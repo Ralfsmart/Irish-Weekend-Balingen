@@ -5,7 +5,7 @@
   "infoText2": "Bitte bequeme Kleidung und Schuhe zum Tanzen mitbringen. Voraussichtlicher Termin: April 2027, langes Wochenende (genaues Datum folgt).",
   "targetEmail": "ralf.schultheiss@googlemail.com",
   "apiBase": "https://set-dance-balingen.ralfsmart.workers.dev",
-  "maxBesucher": 5,
+  "maxBesucher": 50,
   "options": [
     {
       "id": "ceili",
