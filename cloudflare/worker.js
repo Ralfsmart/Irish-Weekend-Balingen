@@ -77,10 +77,12 @@ const ERLAUBTE_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "u
 
 // Quill speichert Listen-/Absatz-Einrückung als class="ql-indent-N" (N 1-8)
 // statt echter Verschachtelung. Wird hier in eine feste Inline-Einrückung
-// übersetzt, statt die Klasse selbst durchzulassen.
+// übersetzt, statt die Klasse selbst durchzulassen. margin-left (nicht
+// padding-left!), da bei <li> mit list-style-position:outside sonst nur
+// der Text einrückt, aber nicht der Bullet-Punkt selbst mitwandert.
 function indentStil(attrs) {
   const treffer = attrs.match(/class\s*=\s*"[^"]*\bql-indent-([1-8])\b[^"]*"/i);
-  return treffer ? ` style="padding-left:${Number(treffer[1]) * 1.5}em"` : "";
+  return treffer ? ` style="margin-left:${Number(treffer[1]) * 1.5}em"` : "";
 }
 
 function sanitizeRichText(html) {
