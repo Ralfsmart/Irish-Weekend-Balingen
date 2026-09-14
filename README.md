@@ -1,4 +1,4 @@
-# Set Dance Balingen
+# Irish Weekend Balingen
 
 Anmeldeseite für den Set Dance Termin im Haus des Volkstanzens, Balingen –
 inklusive Options-Auswahl mit Preisen, Übersichtsseite und Admin-Bereich.
@@ -52,7 +52,7 @@ wrangler deploy
 - `GITHUB_TOKEN`: ein [Fine-grained Personal Access Token](https://github.com/settings/personal-access-tokens/new)
   mit **Repository-Zugriff nur auf dieses Repo** und den Rechten
   „Contents: Read and write" sowie „Issues: Read and write".
-- `GITHUB_OWNER` / `GITHUB_REPO`: z. B. `Ralfsmart` / `Set-Dance-Balingen`
+- `GITHUB_OWNER` / `GITHUB_REPO`: z. B. `Ralfsmart` / `Irish-Weekend-Balingen`
 - `ADMIN_PASSWORD`: frei wählbares Passwort für die Admin-Seite
 
 Nach `wrangler deploy` bekommst du eine URL wie

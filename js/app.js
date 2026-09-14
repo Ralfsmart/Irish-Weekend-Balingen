@@ -206,7 +206,7 @@ document.getElementById("senden-btn").addEventListener("click", async () => {
   }
 
   const istWarteliste = registrierungsStatus === "warteliste";
-  const betreff = `${istWarteliste ? "Warteliste" : "Anmeldung"} Set Dance Balingen – ${name}`;
+  const betreff = `${istWarteliste ? "Warteliste" : "Anmeldung"} Irish Weekend Balingen – ${name}`;
   const body = [
     istWarteliste ? "Hinweis: Die Veranstaltung war zum Zeitpunkt der Anmeldung bereits ausgebucht (Warteliste)." : null,
     istWarteliste ? "" : null,
