@@ -8,6 +8,14 @@ let quill1 = null;
 let quill2 = null;
 let ausgewaehltesLogo = null;
 
+// Weitere Rich-Text-Felder: Config-Feldname -> Quill-Instanz.
+const ZUSATZ_EDITOREN = {
+  zusatzText1: null,
+  zusatzText2: null,
+  impressum: null,
+  datenschutz: null,
+};
+
 function apiBaseWert() {
   return document.getElementById("apiBase").value.trim().replace(/\/$/, "");
 }
@@ -61,6 +69,10 @@ function initQuill() {
   ];
   quill1 = new Quill("#infoText1-editor", { theme: "snow", modules: { toolbar: toolbarOptions } });
   quill2 = new Quill("#infoText2-editor", { theme: "snow", modules: { toolbar: toolbarOptions } });
+
+  Object.keys(ZUSATZ_EDITOREN).forEach((feld) => {
+    ZUSATZ_EDITOREN[feld] = new Quill(`#${feld}-editor`, { theme: "snow", modules: { toolbar: toolbarOptions } });
+  });
 }
 
 async function ladeKonfiguration() {
@@ -71,6 +83,9 @@ async function ladeKonfiguration() {
   document.getElementById("subheadline").value = config.subheadline || "";
   quill1.root.innerHTML = config.infoText1 || "";
   quill2.root.innerHTML = config.infoText2 || "";
+  Object.keys(ZUSATZ_EDITOREN).forEach((feld) => {
+    ZUSATZ_EDITOREN[feld].root.innerHTML = config[feld] || "";
+  });
   document.getElementById("targetEmail").value = config.targetEmail || "";
   document.getElementById("apiBase").value = config.apiBase || "";
   document.getElementById("maxBesucher").value = config.maxBesucher || 0;
@@ -91,6 +106,7 @@ function wendeLevelAufFormularAn() {
   });
   quill1.enable(bearbeitbar);
   quill2.enable(bearbeitbar);
+  Object.values(ZUSATZ_EDITOREN).forEach((quill) => quill.enable(bearbeitbar));
   document.getElementById("option-hinzufuegen").hidden = !bearbeitbar;
   document.getElementById("save-row").hidden = !bearbeitbar;
   document.getElementById("password-section").hidden = !bearbeitbar;
@@ -159,6 +175,10 @@ document.getElementById("admin-form").addEventListener("submit", async (event) =
     subheadline: document.getElementById("subheadline").value.trim(),
     infoText1: quill1.root.innerHTML,
     infoText2: quill2.root.innerHTML,
+    zusatzText1: ZUSATZ_EDITOREN.zusatzText1.root.innerHTML,
+    zusatzText2: ZUSATZ_EDITOREN.zusatzText2.root.innerHTML,
+    impressum: ZUSATZ_EDITOREN.impressum.root.innerHTML,
+    datenschutz: ZUSATZ_EDITOREN.datenschutz.root.innerHTML,
     targetEmail: document.getElementById("targetEmail").value.trim(),
     apiBase,
     maxBesucher: parseInt(document.getElementById("maxBesucher").value, 10) || 0,

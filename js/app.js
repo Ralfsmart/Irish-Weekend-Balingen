@@ -30,6 +30,9 @@ async function ladeKonfiguration() {
     liste.appendChild(wrapper);
   });
 
+  document.getElementById("zusatz-text-1").innerHTML = config.zusatzText1 || "";
+  document.getElementById("zusatz-text-2").innerHTML = config.zusatzText2 || "";
+
   ladeKapazitaet();
 }
 

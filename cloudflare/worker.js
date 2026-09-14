@@ -105,9 +105,12 @@ function sanitizeRichText(html) {
     if (lower === "a") {
       const hrefTreffer = attrs.match(/href\s*=\s*"([^"]*)"/i);
       const href = hrefTreffer ? hrefTreffer[1] : "";
-      if (/^https?:\/\//i.test(href)) {
+      const istHttp = /^https?:\/\//i.test(href);
+      const istMailto = /^mailto:[^"<>]+$/i.test(href);
+      if (istHttp || istMailto) {
         const sichereHref = href.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        return `<a href="${sichereHref}" target="_blank" rel="noopener noreferrer">`;
+        const zielAttr = istHttp ? ' target="_blank" rel="noopener noreferrer"' : "";
+        return `<a href="${sichereHref}"${zielAttr}>`;
       }
       // Ungültiges/unsicheres Link-Ziel (z. B. javascript:): Tag ohne href
       // durchlassen, damit nur der Text stehen bleibt, aber kein Sprungziel.
@@ -288,8 +291,10 @@ async function handleAdminSave(request, env) {
     return new Response("Keine gültige Konfiguration übergeben.", { status: 400 });
   }
 
-  if (typeof config.infoText1 === "string") config.infoText1 = sanitizeRichText(config.infoText1);
-  if (typeof config.infoText2 === "string") config.infoText2 = sanitizeRichText(config.infoText2);
+  const reicheTextFelder = ["infoText1", "infoText2", "zusatzText1", "zusatzText2", "impressum", "datenschutz"];
+  reicheTextFelder.forEach((feld) => {
+    if (typeof config[feld] === "string") config[feld] = sanitizeRichText(config[feld]);
+  });
 
   const path = "data/config.json";
   const bestehendeDatei = await fetch(
