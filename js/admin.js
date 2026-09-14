@@ -55,7 +55,8 @@ function initQuill() {
   const toolbarOptions = [
     ["bold", "italic", "underline", "strike"],
     [{ color: [] }],
-    [{ list: "ordered" }, { list: "bullet" }],
+    [{ list: "ordered" }, { list: "bullet" }, { indent: "-1" }, { indent: "+1" }],
+    ["link"],
     ["clean"],
   ];
   quill1 = new Quill("#infoText1-editor", { theme: "snow", modules: { toolbar: toolbarOptions } });

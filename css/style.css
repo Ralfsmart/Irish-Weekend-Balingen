@@ -196,6 +196,15 @@ a {
   color: var(--color-primary-dark);
 }
 
+.rich-text a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+.rich-text a:hover {
+  color: var(--color-primary-dark);
+}
+
 .registration-form {
   max-width: 560px;
   margin-top: 2rem;

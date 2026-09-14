@@ -71,23 +71,47 @@ function passwortAusRequest(request, daten) {
 // Textfelder (infoText1/infoText2). Läuft server-seitig beim Speichern, da
 // dieser HTML-Code später ungefiltert auf der öffentlichen Seite per
 // innerHTML angezeigt wird - erlaubt sind nur einfache Textformatierungen,
-// keine Skripte, Links, Bilder oder Event-Handler.
-const ERLAUBTE_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "span"]);
+// Listen-Einrückung und einfache http(s)-Links, keine Skripte, Bilder oder
+// Event-Handler.
+const ERLAUBTE_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "span", "a"]);
+
+// Quill speichert Listen-/Absatz-Einrückung als class="ql-indent-N" (N 1-8)
+// statt echter Verschachtelung. Wird hier in eine feste Inline-Einrückung
+// übersetzt, statt die Klasse selbst durchzulassen.
+function indentStil(attrs) {
+  const treffer = attrs.match(/class\s*=\s*"[^"]*\bql-indent-([1-8])\b[^"]*"/i);
+  return treffer ? ` style="padding-left:${Number(treffer[1]) * 1.5}em"` : "";
+}
 
 function sanitizeRichText(html) {
   if (typeof html !== "string") return "";
   // Kompletten Inhalt gefährlicher Tags entfernen (inkl. verschachtelter Inhalte)
   let clean = html.replace(/<(script|style|iframe|object|embed|link|meta|form)[^>]*>[\s\S]*?<\/\1\s*>/gi, "");
-  // Übrige Tags gegen die Allowlist prüfen, alle Attribute außer einer engen
-  // "color"-Style-Angabe bei <span> verwerfen.
+  // Übrige Tags gegen die Allowlist prüfen, alle Attribute bis auf wenige
+  // geprüfte Ausnahmen (Textfarbe, Einrückung, Link-Ziel) verwerfen.
   clean = clean.replace(/<\/?([a-zA-Z0-9]+)([^>]*)>/g, (match, tag, attrs) => {
     const lower = tag.toLowerCase();
     if (!ERLAUBTE_TAGS.has(lower)) return "";
     const istEndTag = match.startsWith("</");
     if (istEndTag) return `</${lower}>`;
+
     if (lower === "span") {
       const farbe = attrs.match(/style\s*=\s*"[^"]*color:\s*(#[0-9a-fA-F]{3,8}|rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\))[^"]*"/i);
-      if (farbe) return `<span style="color:${farbe[1]}">`;
+      return farbe ? `<span style="color:${farbe[1]}">` : `<span>`;
+    }
+    if (lower === "li" || lower === "p") {
+      return `<${lower}${indentStil(attrs)}>`;
+    }
+    if (lower === "a") {
+      const hrefTreffer = attrs.match(/href\s*=\s*"([^"]*)"/i);
+      const href = hrefTreffer ? hrefTreffer[1] : "";
+      if (/^https?:\/\//i.test(href)) {
+        const sichereHref = href.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        return `<a href="${sichereHref}" target="_blank" rel="noopener noreferrer">`;
+      }
+      // Ungültiges/unsicheres Link-Ziel (z. B. javascript:): Tag ohne href
+      // durchlassen, damit nur der Text stehen bleibt, aber kein Sprungziel.
+      return `<a>`;
     }
     return `<${lower}>`;
   });
