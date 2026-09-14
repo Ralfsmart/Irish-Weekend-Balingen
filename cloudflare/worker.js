@@ -75,14 +75,16 @@ function passwortAusRequest(request, daten) {
 // Event-Handler.
 const ERLAUBTE_TAGS = new Set(["p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "span", "a"]);
 
-// Quill speichert Listen-/Absatz-Einrückung als class="ql-indent-N" (N 1-8)
-// statt echter Verschachtelung. Wird hier in eine feste Inline-Einrückung
-// übersetzt, statt die Klasse selbst durchzulassen. margin-left (nicht
-// padding-left!), da bei <li> mit list-style-position:outside sonst nur
-// der Text einrückt, aber nicht der Bullet-Punkt selbst mitwandert.
-function indentStil(attrs) {
-  const treffer = attrs.match(/class\s*=\s*"[^"]*\bql-indent-([1-8])\b[^"]*"/i);
-  return treffer ? ` style="margin-left:${Number(treffer[1]) * 1.5}em"` : "";
+// Quill speichert Listen-/Absatz-Einrückung als class="ql-indent-N" (N 1-8).
+// Die Klasse selbst (nicht in eine Inline-Angabe umgewandelt!) muss erhalten
+// bleiben: Quill erkennt beim erneuten Laden nur diese Klasse als Einrückung
+// wieder - eine Inline-Umrechnung ginge beim nächsten Speichern verloren,
+// weil Quill sie nicht als Einrückungs-Format zurückliest. Die passende
+// CSS-Regel (margin-left, nicht padding-left, damit der Bullet-Punkt
+// mitwandert) liegt in style.css.
+function indentKlasse(attrs) {
+  const treffer = attrs.match(/class\s*=\s*"[^"]*\b(ql-indent-[1-8])\b[^"]*"/i);
+  return treffer ? ` class="${treffer[1]}"` : "";
 }
 
 function sanitizeRichText(html) {
@@ -102,7 +104,7 @@ function sanitizeRichText(html) {
       return farbe ? `<span style="color:${farbe[1]}">` : `<span>`;
     }
     if (lower === "li" || lower === "p") {
-      return `<${lower}${indentStil(attrs)}>`;
+      return `<${lower}${indentKlasse(attrs)}>`;
     }
     if (lower === "a") {
       const hrefTreffer = attrs.match(/href\s*=\s*"([^"]*)"/i);

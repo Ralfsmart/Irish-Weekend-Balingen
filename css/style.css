@@ -192,6 +192,18 @@ a {
   padding-left: 1.4rem;
 }
 
+/* Quill-Einrückungsstufen (class="ql-indent-N"). margin-left statt
+   padding-left, damit bei Listenelementen der Bullet-Punkt selbst mit
+   einrückt und nicht nur der Text. */
+.rich-text .ql-indent-1 { margin-left: 1.5em; }
+.rich-text .ql-indent-2 { margin-left: 3em; }
+.rich-text .ql-indent-3 { margin-left: 4.5em; }
+.rich-text .ql-indent-4 { margin-left: 6em; }
+.rich-text .ql-indent-5 { margin-left: 7.5em; }
+.rich-text .ql-indent-6 { margin-left: 9em; }
+.rich-text .ql-indent-7 { margin-left: 10.5em; }
+.rich-text .ql-indent-8 { margin-left: 12em; }
+
 .rich-text strong {
   color: var(--color-primary-dark);
 }
