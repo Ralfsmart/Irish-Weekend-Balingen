@@ -39,13 +39,17 @@ function pruefeAdminPasswort(request, env) {
   return request.headers.get("X-Admin-Password") === env.ADMIN_PASSWORD;
 }
 
+// raw.githubusercontent.com liegt hinter einem CDN, das Cache-Busting per
+// Query-Parameter teils ignoriert - deshalb die GitHub Contents API nutzen,
+// die immer den aktuellen Stand liefert (Rate-Limit ist dank Token unkritisch).
 async function fetchConfig(env) {
   const res = await fetch(
-    `https://raw.githubusercontent.com/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/main/data/config.json?t=${Date.now()}`,
-    { headers: { "User-Agent": "set-dance-balingen-worker" } }
+    `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/data/config.json`,
+    { headers: githubHeaders(env) }
   );
   if (!res.ok) return null;
-  return res.json();
+  const { content } = await res.json();
+  return JSON.parse(decodeURIComponent(escape(atob(content))));
 }
 
 async function ermittleBelegung(env) {
