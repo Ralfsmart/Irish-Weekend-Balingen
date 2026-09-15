@@ -288,6 +288,32 @@ input, textarea {
   margin: 1rem 0;
 }
 
+#anfahrtsplan-section {
+  margin: 1.5rem 0;
+  padding: 1.5rem 0;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.anfahrtsplan-upload-preview {
+  display: block;
+  max-width: 100%;
+  width: 420px;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(46, 36, 32, 0.25);
+  margin: 1rem 0;
+}
+
+.anfahrtsplan-bild {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 14px rgba(46, 36, 32, 0.2);
+  margin: 1.5rem 0;
+}
+
 #access-level-hinweis {
   font-weight: bold;
 }

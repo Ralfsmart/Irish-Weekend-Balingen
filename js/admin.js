@@ -7,6 +7,7 @@ let aktuellesPasswort = "";
 let quill1 = null;
 let quill2 = null;
 let ausgewaehltesLogo = null;
+let ausgewaehlterAnfahrtsplan = null;
 
 // Weitere Rich-Text-Felder: Config-Feldname -> Quill-Instanz.
 const ZUSATZ_EDITOREN = {
@@ -112,6 +113,8 @@ function wendeLevelAufFormularAn() {
   document.getElementById("password-section").hidden = !bearbeitbar;
   document.getElementById("logo-upload").hidden = !bearbeitbar;
   document.getElementById("logo-upload-btn").hidden = !bearbeitbar;
+  document.getElementById("anfahrtsplan-upload").hidden = !bearbeitbar;
+  document.getElementById("anfahrtsplan-upload-btn").hidden = !bearbeitbar;
   renderOptionen();
 }
 
@@ -293,6 +296,58 @@ document.getElementById("logo-upload-btn").addEventListener("click", async () =>
 
     status.textContent = res.ok
       ? "Logo gespeichert – die Änderung ist live."
+      : `Fehler: ${await res.text()}`;
+  } catch (err) {
+    status.textContent = `Fehler beim Hochladen: ${err.message}`;
+  }
+});
+
+document.getElementById("anfahrtsplan-upload").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  const status = document.getElementById("anfahrtsplan-status");
+  if (!file) return;
+
+  if (file.type !== "image/png") {
+    status.textContent = "Bitte eine PNG-Datei auswählen.";
+    e.target.value = "";
+    return;
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    status.textContent = "Datei ist zu groß (max. 2 MB).";
+    e.target.value = "";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    ausgewaehlterAnfahrtsplan = reader.result;
+    document.getElementById("anfahrtsplan-preview").src = reader.result;
+    status.textContent = "Vorschau aktualisiert – zum Übernehmen auf \"Anfahrtsplan hochladen\" klicken.";
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("anfahrtsplan-upload-btn").addEventListener("click", async () => {
+  if (aktuellesLevel !== "admin") return;
+  const status = document.getElementById("anfahrtsplan-status");
+
+  if (!ausgewaehlterAnfahrtsplan) {
+    status.textContent = "Bitte zuerst eine PNG-Datei auswählen.";
+    return;
+  }
+
+  const apiBase = apiBaseWert();
+  status.textContent = "Lade Anfahrtsplan hoch …";
+
+  try {
+    const res = await fetch(`${apiBase}/upload-anfahrtsplan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: aktuellesPasswort, imageBase64: ausgewaehlterAnfahrtsplan }),
+    });
+
+    status.textContent = res.ok
+      ? "Anfahrtsplan gespeichert – die Änderung ist live."
       : `Fehler: ${await res.text()}`;
   } catch (err) {
     status.textContent = `Fehler beim Hochladen: ${err.message}`;

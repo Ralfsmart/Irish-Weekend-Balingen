@@ -13,6 +13,8 @@
 // - POST   /change-passwords     -> Level "admin", ändert die Passwörter
 // - POST   /upload-logo          -> Level "admin", ersetzt img/icons/logo.png
 //                                    (Header-Logo, Favicon, Social-Share-Bild)
+// - POST   /upload-anfahrtsplan  -> Level "admin", ersetzt img/anfahrtsplan.png
+//                                    (Bild bei der Wegbeschreibung)
 //
 // Anmeldungen und die beiden (gehashten) Admin-Passwörter liegen in der
 // D1-Datenbank (env.DB) - beides ist von außen nie direkt erreichbar, nur
@@ -344,7 +346,7 @@ function base64LaengeUeberschreitetLimit(base64, maxBytes) {
   return geschaetzteBytes > maxBytes;
 }
 
-async function handleUploadLogo(request, env) {
+async function handleUploadBild(request, env, zielpfad, commitMessage) {
   const daten = await request.json().catch(() => null);
   if (!daten) return new Response("Ungültiges JSON.", { status: 400 });
 
@@ -379,20 +381,19 @@ async function handleUploadLogo(request, env) {
     return new Response("Nur PNG-Bilder werden unterstützt.", { status: 400 });
   }
 
-  const path = "img/icons/logo.png";
   const headers = githubHeaders(env);
 
   const bestehendeDatei = await fetch(
-    `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${path}`,
+    `${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${zielpfad}`,
     { headers }
   );
   const sha = bestehendeDatei.ok ? (await bestehendeDatei.json()).sha : undefined;
 
-  const res = await fetch(`${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${path}`, {
+  const res = await fetch(`${GITHUB_API}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/contents/${zielpfad}`, {
     method: "PUT",
     headers,
     body: JSON.stringify({
-      message: "Logo/Icon über Admin-Seite aktualisiert",
+      message: commitMessage,
       content: base64Data,
       ...(sha ? { sha } : {}),
     }),
@@ -406,6 +407,14 @@ async function handleUploadLogo(request, env) {
     status: 200,
     headers: { "Content-Type": "application/json" },
   });
+}
+
+function handleUploadLogo(request, env) {
+  return handleUploadBild(request, env, "img/icons/logo.png", "Logo/Icon über Admin-Seite aktualisiert");
+}
+
+function handleUploadAnfahrtsplan(request, env) {
+  return handleUploadBild(request, env, "img/anfahrtsplan.png", "Anfahrtsplan über Admin-Seite aktualisiert");
 }
 
 export default {
@@ -431,6 +440,8 @@ export default {
       response = await handleChangePasswords(request, env);
     } else if (url.pathname === "/upload-logo" && request.method === "POST") {
       response = await handleUploadLogo(request, env);
+    } else if (url.pathname === "/upload-anfahrtsplan" && request.method === "POST") {
+      response = await handleUploadAnfahrtsplan(request, env);
     } else if (url.pathname === "/registrations" && request.method === "GET") {
       response = await handleListRegistrations(request, env);
     } else if (registrationIdMatch && request.method === "PATCH") {
