@@ -305,13 +305,28 @@ input, textarea {
   margin: 1rem 0;
 }
 
+.wegbeschreibung-wrapper {
+  display: flow-root;
+}
+
 .anfahrtsplan-bild {
-  display: block;
-  max-width: 100%;
+  float: right;
+  width: 45%;
+  max-width: 320px;
   height: auto;
+  margin: 0.25rem 0 1rem 1.5rem;
   border-radius: var(--radius);
   box-shadow: 0 4px 14px rgba(46, 36, 32, 0.2);
-  margin: 1.5rem 0;
+}
+
+@media (max-width: 600px) {
+  .anfahrtsplan-bild {
+    float: none;
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 0.25rem auto 1rem;
+  }
 }
 
 #access-level-hinweis {
