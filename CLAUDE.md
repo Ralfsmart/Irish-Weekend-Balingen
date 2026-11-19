@@ -158,3 +158,17 @@ curl -s "https://<username>.github.io/Irish-Weekend-Balingen/data/config.json?v=
 
 Der zweite Aufruf mit Cache-Busting-Query-Parameter, weil GitHub
 Pages/CDN alte Inhalte sonst länger cachen kann als erwartet.
+
+## Abschluss einer Neuentwicklung (Ende-zu-Ende)
+
+Gilt für jede Änderung an Code oder Inhalten dieses Repos. Reihenfolge einhalten, nichts überspringen:
+
+1. **Start:** `git pull`, Stand prüfen.
+2. **Ziel klären:** Was soll am Ende funktionieren und woran erkennt es der Nutzer? Bei größeren Vorhaben zuerst einen kurzen Plan zeigen und auf das Ja warten.
+3. **Branch:** Größere Neuentwicklung (mehrere Dateien oder neue Funktion): eigenen Branch `feature/<thema>` anlegen und dort arbeiten, **nicht** direkt auf `main`. Kleine Änderungen (Tippfehler, einzelne Textstelle) gehen direkt auf `main`.
+4. **Prüfen:** Statische Seite und Worker lokal testen wie im Abschnitt Testen beschrieben, **ohne** `GITHUB_TOKEN`. `data/config.json` bei Tests nicht ändern oder committen.
+5. **Gegenprüfung:** Bei Änderungen an Login, Admin, Datenverarbeitung oder Mitgliederdaten einen Subagenten die Änderung mit frischem Blick auf Fehler und Sicherheit prüfen lassen.
+6. **Doku:** Obsidian-Notiz `C:\Users\ralfs\OneDrive\Documents\Claude\Obsidian\Set Dance Balingen\Set Dance Balingen.md` aktualisieren; bei Änderung an dieser CLAUDE.md zusätzlich die Spiegelkopie (siehe Abschnitt Obsidian-Spiegelung).
+7. **Commit:** Kleine Commits mit klarer Nachricht. Vorher sicherstellen, dass keine Zugangsdaten, Mitgliederdaten oder IBANs enthalten sind. Die Autor-Adresse ist die GitHub-Noreply-Adresse (globale Git-Einstellung, nicht ändern).
+8. **Veröffentlichen:** Ein Push auf `main` bzw. das Zusammenführen eines Branches stellt die Seite über GitHub Pages live. **Vorher den Nutzer fragen und auf das Ja warten.** Änderungen am Worker (`cloudflare/worker.js`) gehen durch einen Push nicht live (kein CI), das Deployment mit `wrangler` nur nach ausdrücklichem Ja. Danach Live-Check wie im Abschnitt Testen.
+9. **Abschlussbericht:** Kurz sagen, was geändert wurde, was offen ist und was der Nutzer noch tun muss (z. B. `git pull` auf dem anderen Rechner).
